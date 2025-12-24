@@ -1,0 +1,550 @@
+* {
+    box-sizing: border-box;
+}
+
+html,
+body {
+    margin: 0;
+    width: 100%;
+    min-height: 100%;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
+    background: #f5f7f5;
+    color: #1a1a1a;
+}
+
+/* Navigation */
+.main-nav {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 1rem 2rem;
+    background: white;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+.nav-logo {
+    font-size: 1.25rem;
+    font-weight: 600;
+    color: #2d5a27;
+    text-decoration: none;
+}
+
+.nav-logo:hover {
+    color: #1e3d1a;
+}
+
+.nav-links {
+    display: flex;
+    gap: 1.5rem;
+    list-style: none;
+    margin: 0;
+    padding: 0;
+}
+
+.nav-links a {
+    color: #333;
+    text-decoration: none;
+    font-size: 0.95rem;
+}
+
+.nav-links a:hover {
+    color: #2d5a27;
+}
+
+main {
+    padding: 1rem 0;
+}
+
+.container {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 2rem;
+}
+
+header {
+    text-align: center;
+    margin-bottom: 2rem;
+}
+
+h1 {
+    margin: 0;
+    font-size: 2.5rem;
+}
+
+header p {
+    color: #666;
+    margin-top: 0.5rem;
+}
+
+.search-form {
+    display: flex;
+    gap: 0.5rem;
+    justify-content: center;
+    margin-bottom: 2rem;
+}
+
+.search-form input {
+    padding: 0.75rem 1rem;
+    font-size: 1rem;
+    border: 1px solid #ccc;
+    border-radius: 6px;
+    width: 300px;
+}
+
+.search-form button {
+    padding: 0.75rem 1.5rem;
+    font-size: 1rem;
+    background: #2d5a27;
+    color: white;
+    border: none;
+    border-radius: 6px;
+    cursor: pointer;
+}
+
+.search-form button:hover {
+    background: #1e3d1a;
+}
+
+.add-cultivar-link {
+    text-align: center;
+    margin-bottom: 2rem;
+    color: #666;
+    font-size: 0.9rem;
+}
+
+.add-cultivar-link a {
+    color: #2d5a27;
+}
+
+.results {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    gap: 1.5rem;
+}
+
+.plant-card {
+    background: white;
+    border-radius: 12px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+    overflow: hidden;
+    transition: transform 0.2s;
+}
+
+.plant-card:hover {
+    transform: translateY(-4px);
+}
+
+.plant-card img {
+    width: 100%;
+    height: 200px;
+    object-fit: cover;
+}
+
+.plant-card h3 {
+    margin: 1rem 0 0.25rem;
+    font-size: 1.1rem;
+    font-style: italic;
+}
+
+.plant-card .common-name {
+    margin: 0;
+    color: #444;
+    font-size: 1rem;
+}
+
+.plant-card .taxonomy {
+    margin: 0.25rem 0;
+    font-size: 0.85rem;
+    color: #666;
+}
+
+.plant-card .card-content {
+    padding: 0 1rem 1rem;
+}
+
+.plant-card .no-image {
+    width: 100%;
+    height: 200px;
+    background: #e0e0e0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #888;
+}
+
+.plant-card .add-btn {
+    width: 100%;
+    margin-top: 1rem;
+    padding: 0.6rem 1rem;
+    background: #2d5a27;
+    color: white;
+    border: none;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 0.9rem;
+    transition: background 0.2s;
+}
+
+.plant-card .add-btn:hover {
+    background: #1e3d1a;
+}
+
+.plant-card .add-btn.added {
+    background: #666;
+    cursor: default;
+}
+
+.back-link {
+    display: inline-block;
+    margin-bottom: 1rem;
+    color: #2d5a27;
+    text-decoration: none;
+}
+
+.back-link:hover {
+    text-decoration: underline;
+}
+
+.loading {
+    text-align: center;
+    color: #666;
+    padding: 2rem;
+}
+
+.plant-header {
+    display: flex;
+    gap: 2rem;
+    margin-bottom: 2rem;
+}
+
+.plant-image {
+    width: 300px;
+    height: 300px;
+    object-fit: cover;
+    border-radius: 12px;
+}
+
+.plant-title {
+    flex: 1;
+}
+
+.plant-title h1 {
+    margin: 0 0 0.5rem;
+    font-size: 2rem;
+}
+
+.plant-title .scientific-name {
+    font-style: italic;
+    color: #666;
+    margin: 0 0 0.25rem;
+}
+
+.plant-title .common-name {
+    color: #888;
+    margin: 0 0 1rem;
+}
+
+.edit-btn {
+    padding: 0.5rem 1rem;
+    background: #2d5a27;
+    color: white;
+    border: none;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 0.9rem;
+}
+
+.edit-btn:hover {
+    background: #1e3d1a;
+}
+
+.info-sections {
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+}
+
+.info-section {
+    background: white;
+    border-radius: 12px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+    padding: 1.5rem;
+}
+
+.info-section h2 {
+    margin: 0 0 1rem;
+    font-size: 1.1rem;
+    color: #333;
+    border-bottom: 1px solid #eee;
+    padding-bottom: 0.5rem;
+}
+
+.info-section dl {
+    margin: 0;
+    display: grid;
+    grid-template-columns: 120px 1fr;
+    gap: 0.5rem;
+}
+
+.info-section dt {
+    font-weight: 500;
+    color: #666;
+}
+
+.info-section dd {
+    margin: 0;
+    color: #333;
+}
+
+.info-section a {
+    color: #2d5a27;
+}
+
+.notes-content {
+    color: #333;
+    line-height: 1.6;
+}
+
+.synonyms {
+    color: #666;
+    font-style: italic;
+    margin: 0;
+}
+
+.meta-info {
+    margin-top: 2rem;
+    padding-top: 1rem;
+    border-top: 1px solid #eee;
+    color: #888;
+    font-size: 0.85rem;
+}
+
+.meta-info p {
+    margin: 0.25rem 0;
+}
+
+/* Edit Form Styles */
+.edit-form {
+    background: white;
+    border-radius: 12px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+    padding: 2rem;
+}
+
+.edit-form h1 {
+    margin: 0 0 1.5rem;
+    font-size: 1.5rem;
+}
+
+.form-section {
+    margin-bottom: 2rem;
+}
+
+.form-section h2 {
+    font-size: 1.1rem;
+    color: #333;
+    margin: 0 0 1rem 0;
+    padding-bottom: 0.5rem;
+    border-bottom: 1px solid #eee;
+}
+
+.form-group {
+    margin-bottom: 1rem;
+}
+
+.form-group label {
+    display: block;
+    font-weight: 500;
+    margin-bottom: 0.25rem;
+    color: #333;
+}
+
+.form-group input,
+.form-group textarea {
+    width: 100%;
+    padding: 0.75rem;
+    font-size: 1rem;
+    font-family: inherit;
+    border: 1px solid #ccc;
+    border-radius: 6px;
+    box-sizing: border-box;
+}
+
+.form-group textarea {
+    resize: vertical;
+}
+
+.form-group input:focus,
+.form-group textarea:focus {
+    outline: none;
+    border-color: #2d5a27;
+    box-shadow: 0 0 0 2px rgba(45, 90, 39, 0.1);
+}
+
+.form-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1rem;
+}
+
+.form-actions {
+    display: flex;
+    gap: 1rem;
+    justify-content: flex-end;
+    margin-top: 2rem;
+}
+
+.cancel-btn {
+    padding: 0.75rem 1.5rem;
+    background: #eee;
+    color: #333;
+    border: none;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 1rem;
+}
+
+.cancel-btn:hover {
+    background: #ddd;
+}
+
+.save-btn {
+    padding: 0.75rem 1.5rem;
+    background: #2d5a27;
+    color: white;
+    border: none;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 1rem;
+}
+
+.save-btn:hover {
+    background: #1e3d1a;
+}
+
+.save-btn:disabled {
+    background: #888;
+    cursor: not-allowed;
+}
+
+.form-message {
+    margin-top: 1rem;
+    padding: 1rem;
+    border-radius: 6px;
+    text-align: center;
+    display: none;
+}
+
+.form-message.error {
+    display: block;
+    background: #ffebee;
+    color: #c62828;
+}
+ .empty-state {
+     text-align: center;
+     color: #666;
+     padding: 3rem;
+     background: white;
+     border-radius: 12px;
+     box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+ }
+
+.empty-state a {
+    color: #2d5a27;
+}
+
+.collection {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    grid-gap: 1rem;
+
+}
+
+.plant-card {
+    border: 1px solid #ccc;
+    border-radius: 12px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+    overflow: hidden;
+    transition: transform 0.2s;
+}
+
+.plant-card:hover {
+    transform: translateY(-4px);
+}
+
+.plant-card img {
+    width: 100%;
+    object-fit: cover;
+}
+
+.plant-card .no-image {
+    width: 100%;
+    height: 200px;
+    background: #e0e0e0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #888;
+}
+
+.plant-card .card-content {
+    padding: 1rem;
+}
+
+.plant-card h3 {
+    margin: 0 0 0.25rem;
+    font-size: 1.1rem;
+    color: #1a1a1a;
+}
+
+.plant-card .subtitle {
+    margin: 0 0 0.5rem;
+    font-style: italic;
+    color: #666;
+    font-size: 0.9rem;
+}
+
+.plant-card .taxonomy {
+    margin: 0;
+    font-size: 0.85rem;
+    color: #888;
+}
+
+.plant-card .location {
+    margin: 0.5rem 0 0;
+    font-size: 0.85rem;
+    color: #666;
+}
+
+.plant-card .status-badge {
+    display: inline-block;
+    margin-top: 0.5rem;
+    padding: 0.25rem 0.5rem;
+    background: #e8f5e9;
+    color: #2d5a27;
+    border-radius: 4px;
+    font-size: 0.75rem;
+}
+
+@media (max-width: 600px) {
+    .plant-header {
+        flex-direction: column;
+    }
+
+    .plant-image {
+        width: 100%;
+        height: 250px;
+    }
+
+    .form-row {
+        grid-template-columns: 1fr;
+    }
+
+    .info-section dl {
+        grid-template-columns: 1fr;
+    }
+
+    .info-section dt {
+        margin-top: 0.5rem;
+    }
+}

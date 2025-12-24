@@ -1,0 +1,85 @@
+---
+import Layout from '../layouts/Layout.astro';
+---
+
+<Layout>
+    <div class="container">
+        <header>
+            <h1>🌱 My Collection</h1>
+            <p>The Mosslight Nook Plant Catalog</p>
+            <nav class="header-nav">
+                <a href="/">Search Trefle</a>
+                <a href="/add">Add Cultivar</a>
+            </nav>
+        </header>
+
+        <div id="loading" class="loading">Loading your plants...</div>
+        <div id="collection" class="collection"></div>
+    </div>
+</Layout>
+
+<script>
+async function loadCollection() {
+    const loadingEl = document.getElementById('loading');
+    const collectionEl = document.getElementById('collection');
+
+    try {
+        const response = await fetch('/api/plants/list');
+        const data = await response.json();
+
+        loadingEl.style.display = 'none';
+
+        if (data.plants && data.plants.length > 0) {
+            displayCollection(data.plants);
+        } else {
+            collectionEl.innerHTML = `
+                <div class="empty-state">
+                    <p>No plants yet!</p>
+                    <p><a href="/">Search Trefle</a> or <a href="/add">add a cultivar</a> to get started.</p>
+                </div>
+            `;
+        }
+    } catch (error) {
+        console.error('Error loading collection:', error);
+        loadingEl.textContent = 'Error loading plants. Please refresh.';
+    }
+}
+
+function displayCollection(plants) {
+    const collectionEl = document.getElementById('collection');
+    collectionEl.innerHTML = '';
+
+    plants.forEach(plant => {
+        const card = createPlantCard(plant);
+        collectionEl.appendChild(card);
+    });
+}
+
+function createPlantCard(plant) {
+    const displayName = plant.nickname || plant.common_name || plant.scientific_name;
+    const subtitle = plant.nickname ? (plant.common_name || plant.scientific_name) : plant.scientific_name;
+    const showSubtitle = displayName !== subtitle;
+
+    const card = document.createElement('div');
+    card.href = `/plant?id=${plant.id}`;
+    card.className = 'plant-card';
+
+    card.innerHTML = `
+        ${plant.image_url 
+            ? `<img src="${plant.image_url}" alt="${plant.scientific_name}" width="200px">` 
+            : '<div class="no-image">No image</div>'
+        }
+        <div class="card-content">
+            <h3>${displayName}</h3>
+            ${showSubtitle ? `<p class="subtitle">${subtitle}</p>` : ''}
+            ${plant.family ? `<p class="taxonomy">${plant.family}</p>` : ''}
+            ${plant.location ? `<p class="location">📍 ${plant.location}</p>` : ''}
+            ${plant.status ? `<span class="status-badge">${plant.status}</span>` : ''}
+        </div>
+    `;
+
+    return card;
+}
+
+document.addEventListener('DOMContentLoaded', loadCollection);
+</script>

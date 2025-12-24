@@ -1,0 +1,450 @@
+---
+import Layout from '../layouts/Layout.astro';
+---
+
+<Layout>
+    <div class="container">
+        <header>
+            <h1>🌱 Add a Cultivar</h1>
+            <p>For plants not found in Trefle</p>
+            <a href="/" class="back-link">← Back to Search</a>
+        </header>
+
+        <form id="cultivar-form" class="cultivar-form">
+            <div class="form-section">
+                <h2>Plant Identity</h2>
+                
+                <div class="form-group">
+                    <label for="scientific_name">Cultivar Name *</label>
+                    <input type="text" id="scientific_name" name="scientific_name" required
+                        placeholder="e.g., Alocasia 'Tiny Dancers'">
+                    <small>Use the full cultivar name with single quotes</small>
+                </div>
+
+                <div class="form-group">
+                    <label for="common_name">Common Name</label>
+                    <input type="text" id="common_name" name="common_name"
+                        placeholder="e.g., Tiny Dancers">
+                </div>
+
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="genus">Genus</label>
+                        <input type="text" id="genus" name="genus"
+                            placeholder="e.g., Alocasia">
+                    </div>
+
+                    <div class="form-group">
+                        <label for="family">Family</label>
+                        <input type="text" id="family" name="family"
+                            placeholder="e.g., Araceae">
+                    </div>
+                </div>
+            </div>
+
+            <div class="form-section">
+                <h2>Patent & Breeding Info</h2>
+                <small class="section-note">Optional - for cultivars with known history</small>
+
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="patent_number">Patent Number</label>
+                        <input type="text" id="patent_number" name="patent_number"
+                            placeholder="e.g., USPP26607P2">
+                    </div>
+
+                    <div class="form-group">
+                        <label for="year_created">Year Created</label>
+                        <input type="number" id="year_created" name="year_created"
+                            placeholder="e.g., 2009" min="1900" max="2099">
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label for="patent_url">Patent URL</label>
+                    <input type="url" id="patent_url" name="patent_url"
+                        placeholder="e.g., https://patents.google.com/patent/USPP26607P2">
+                </div>
+
+                <div class="form-group">
+                    <label for="parentage">Parentage</label>
+                    <input type="text" id="parentage" name="parentage"
+                        placeholder="e.g., Alocasia brisbanensis × Alocasia odora">
+                    <small>The cross that created this cultivar</small>
+                </div>
+
+                <div class="form-group">
+                    <label for="breeder">Breeder</label>
+                    <input type="text" id="breeder" name="breeder"
+                        placeholder="e.g., LariAnn Garner">
+                </div>
+
+                <div class="form-group">
+                    <label for="awards">Awards</label>
+                    <input type="text" id="awards" name="awards"
+                        placeholder="e.g., Most Unusual Aroid, International Aroid Society 2009">
+                </div>
+            </div>
+
+            <div class="form-section">
+                <h2>Reference Notes</h2>
+                <small class="section-note">Optional - hybrid info, nomenclature history, sources</small>
+
+                <div class="form-group">
+                    <textarea id="notes" name="notes" rows="6"
+                        placeholder="e.g., Alocasia × amazonica is a hybrid whose parents are unknown..."></textarea>
+                </div>
+            </div>
+
+            <div class="form-section">
+                <h2>Care Information</h2>
+                <small class="section-note">Optional - what works for this plant in your environment</small>
+
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="care_light">Light</label>
+                        <input type="text" id="care_light" name="care_light"
+                            placeholder="e.g., bright indirect, no direct sun">
+                    </div>
+
+                    <div class="form-group">
+                        <label for="care_humidity">Humidity</label>
+                        <input type="text" id="care_humidity" name="care_humidity"
+                            placeholder="e.g., 60%+, mist daily">
+                    </div>
+                </div>
+
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="care_water">Water</label>
+                        <input type="text" id="care_water" name="care_water"
+                            placeholder="e.g., when top 2 inches dry">
+                    </div>
+
+                    <div class="form-group">
+                        <label for="care_soil">Soil</label>
+                        <input type="text" id="care_soil" name="care_soil"
+                            placeholder="e.g., chunky aroid mix">
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label for="care_notes">Care Notes</label>
+                    <input type="text" id="care_notes" name="care_notes"
+                        placeholder="e.g., drama queen, drops leaves if you look at her wrong">
+                </div>
+            </div>
+
+            <div class="form-section">
+                <h2>Your Plant</h2>
+
+                <div class="form-group">
+                    <label for="nickname">Nickname</label>
+                    <input type="text" id="nickname" name="nickname"
+                        placeholder="What do you call her?">
+                </div>
+
+                <div class="form-group">
+                    <label for="location">Location</label>
+                    <input type="text" id="location" name="location"
+                        placeholder="e.g., Mosslight Nook, East Window">
+                </div>
+
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="acquired_date">Acquired Date</label>
+                        <input type="date" id="acquired_date" name="acquired_date">
+                    </div>
+
+                    <div class="form-group">
+                        <label for="status">Status</label>
+                        <input type="text" id="status" name="status" list="status-options"
+                            placeholder="e.g., thriving, settling in">
+                        <datalist id="status-options">
+                            <option value="thriving">
+                            <option value="settling in">
+                            <option value="struggling">
+                            <option value="recovering">
+                            <option value="dormant">
+                            <option value="wishlist">
+                            <option value="deceased">
+                        </datalist>
+                    </div>
+                </div>
+            </div>
+
+            <div class="form-actions">
+                <button type="submit" class="submit-btn">Add to Collection</button>
+            </div>
+
+            <div id="form-message" class="form-message"></div>
+        </form>
+    </div>
+</Layout>
+
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+    const form = document.getElementById('cultivar-form');
+    const message = document.getElementById('form-message');
+
+    form.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        
+        const submitBtn = form.querySelector('.submit-btn');
+        submitBtn.disabled = true;
+        submitBtn.textContent = 'Adding...';
+        message.textContent = '';
+        message.className = 'form-message';
+
+        const formData = new FormData(form);
+        
+        // Build metadata object from patent/breeding fields
+        const metadata = {};
+        
+        const patentNumber = formData.get('patent_number');
+        const patentUrl = formData.get('patent_url');
+        const yearCreated = formData.get('year_created');
+        if (patentNumber || patentUrl || yearCreated) {
+            metadata.patent = {};
+            if (patentNumber) metadata.patent.number = patentNumber;
+            if (patentUrl) metadata.patent.url = patentUrl;
+            if (yearCreated) metadata.patent.year_created = parseInt(yearCreated);
+        }
+        
+        const parentage = formData.get('parentage');
+        const breeder = formData.get('breeder');
+        if (parentage || breeder) {
+            metadata.breeding = {};
+            if (parentage) metadata.breeding.parentage = parentage;
+            if (breeder) metadata.breeding.breeder = breeder;
+        }
+        
+        const awards = formData.get('awards');
+        if (awards) {
+            metadata.awards = [awards]; // Array for multiple awards later
+        }
+        
+        const careLight = formData.get('care_light');
+        const careHumidity = formData.get('care_humidity');
+        const careWater = formData.get('care_water');
+        const careSoil = formData.get('care_soil');
+        const careNotes = formData.get('care_notes');
+        if (careLight || careHumidity || careWater || careSoil || careNotes) {
+            metadata.care = {};
+            if (careLight) metadata.care.light = careLight;
+            if (careHumidity) metadata.care.humidity = careHumidity;
+            if (careWater) metadata.care.water = careWater;
+            if (careSoil) metadata.care.soil = careSoil;
+            if (careNotes) metadata.care.notes = careNotes;
+        }
+
+        const payload = {
+            scientific_name: formData.get('scientific_name'),
+            common_name: formData.get('common_name') || null,
+            genus: formData.get('genus') || null,
+            family: formData.get('family') || null,
+            metadata: Object.keys(metadata).length > 0 ? metadata : null,
+            notes: formData.get('notes') || null,
+            nickname: formData.get('nickname') || null,
+            location: formData.get('location') || null,
+            acquired_date: formData.get('acquired_date') || null,
+            status: formData.get('status') || null,
+        };
+
+        console.log('Adding cultivar:', payload);
+
+        try {
+            const response = await fetch('/api/plants', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload),
+            });
+
+            const result = await response.json();
+
+            if (response.ok) {
+                message.textContent = `✓ Added ${result.plant.scientific_name} to your collection!`;
+                message.classList.add('success');
+                form.reset();
+            } else {
+                message.textContent = `Error: ${result.error}`;
+                message.classList.add('error');
+            }
+        } catch (error) {
+            console.error('Error:', error);
+            message.textContent = `Error: ${error.message}`;
+            message.classList.add('error');
+        }
+
+        submitBtn.disabled = false;
+        submitBtn.textContent = 'Add to Collection';
+    });
+});
+</script>
+
+<style>
+    .container {
+        max-width: 600px;
+        margin: 0 auto;
+        padding: 2rem;
+    }
+
+    header {
+        margin-bottom: 2rem;
+    }
+
+    h1 {
+        margin: 0;
+        font-size: 2rem;
+    }
+
+    header p {
+        color: #666;
+        margin-top: 0.5rem;
+    }
+
+    .back-link {
+        display: inline-block;
+        margin-top: 1rem;
+        color: #2d5a27;
+        text-decoration: none;
+    }
+
+    .back-link:hover {
+        text-decoration: underline;
+    }
+
+    .cultivar-form {
+        background: white;
+        border-radius: 12px;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+        padding: 2rem;
+    }
+
+    .form-section {
+        margin-bottom: 2rem;
+    }
+
+    .form-section h2 {
+        font-size: 1.1rem;
+        color: #333;
+        margin: 0 0 0.5rem 0;
+        padding-bottom: 0.5rem;
+        border-bottom: 1px solid #eee;
+    }
+
+    .section-note {
+        display: block;
+        color: #888;
+        font-size: 0.85rem;
+        margin-bottom: 1rem;
+    }
+
+    .form-group {
+        margin-bottom: 1rem;
+    }
+
+    .form-group label {
+        display: block;
+        font-weight: 500;
+        margin-bottom: 0.25rem;
+        color: #333;
+    }
+
+    .form-group input {
+        width: 100%;
+        padding: 0.75rem;
+        font-size: 1rem;
+        border: 1px solid #ccc;
+        border-radius: 6px;
+        box-sizing: border-box;
+    }
+
+    .form-group input:focus {
+        outline: none;
+        border-color: #2d5a27;
+        box-shadow: 0 0 0 2px rgba(45, 90, 39, 0.1);
+    }
+
+    .form-group textarea {
+        width: 100%;
+        padding: 0.75rem;
+        font-size: 1rem;
+        font-family: inherit;
+        border: 1px solid #ccc;
+        border-radius: 6px;
+        box-sizing: border-box;
+        resize: vertical;
+    }
+
+    .form-group textarea:focus {
+        outline: none;
+        border-color: #2d5a27;
+        box-shadow: 0 0 0 2px rgba(45, 90, 39, 0.1);
+    }
+
+    .form-group small {
+        display: block;
+        margin-top: 0.25rem;
+        color: #888;
+        font-size: 0.85rem;
+    }
+
+    .form-row {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 1rem;
+    }
+
+    .form-actions {
+        margin-top: 2rem;
+    }
+
+    .submit-btn {
+        width: 100%;
+        padding: 1rem;
+        font-size: 1rem;
+        font-weight: 500;
+        background: #2d5a27;
+        color: white;
+        border: none;
+        border-radius: 6px;
+        cursor: pointer;
+        transition: background 0.2s;
+    }
+
+    .submit-btn:hover {
+        background: #1e3d1a;
+    }
+
+    .submit-btn:disabled {
+        background: #888;
+        cursor: not-allowed;
+    }
+
+    .form-message {
+        margin-top: 1rem;
+        padding: 1rem;
+        border-radius: 6px;
+        text-align: center;
+        display: none;
+    }
+
+    .form-message.success {
+        display: block;
+        background: #e8f5e9;
+        color: #2d5a27;
+    }
+
+    .form-message.error {
+        display: block;
+        background: #ffebee;
+        color: #c62828;
+    }
+
+    @media (max-width: 500px) {
+        .form-row {
+            grid-template-columns: 1fr;
+        }
+    }
+</style>

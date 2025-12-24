@@ -1,0 +1,472 @@
+---
+import Layout from '../layouts/Layout.astro';
+---
+
+<Layout>
+    <div class="container">
+        <a href="/collection" class="back-link">← Back to Collection</a>
+
+        <div id="loading" class="loading">Loading plant...</div>
+        <div id="plant-detail" class="plant-detail"></div>
+    </div>
+</Layout>
+
+<script>
+let currentPlant = null;
+let isEditing = false;
+
+async function loadPlant() {
+    const params = new URLSearchParams(window.location.search);
+    const id = params.get('id');
+
+    if (!id) {
+        document.getElementById('loading').textContent = 'No plant ID provided.';
+        return;
+    }
+
+    try {
+        const response = await fetch(`/api/plants/get?id=${id}`);
+        const data = await response.json();
+
+        document.getElementById('loading').style.display = 'none';
+
+        if (data.plant) {
+            currentPlant = data.plant;
+            displayPlant(data.plant);
+        } else {
+            document.getElementById('plant-detail').innerHTML = '<p>Plant not found.</p>';
+        }
+    } catch (error) {
+        console.error('Error loading plant:', error);
+        document.getElementById('loading').textContent = 'Error loading plant.';
+    }
+}
+
+function displayPlant(plant) {
+    const container = document.getElementById('plant-detail');
+    const displayName = plant.nickname || plant.common_name || plant.scientific_name;
+    const metadata = plant.metadata || {};
+
+    container.innerHTML = `
+        <div class="plant-header">
+            ${plant.image_url 
+                ? `<img src="${plant.image_url}" alt="${plant.scientific_name}" class="plant-image">` 
+                : ''
+            }
+            <div class="plant-title">
+                <h1>${displayName}</h1>
+                ${plant.nickname && plant.scientific_name !== plant.nickname 
+                    ? `<p class="scientific-name">${plant.scientific_name}</p>` 
+                    : ''
+                }
+                ${plant.common_name && plant.common_name !== displayName 
+                    ? `<p class="common-name">${plant.common_name}</p>` 
+                    : ''
+                }
+                <button id="edit-btn" class="edit-btn">Edit Plant</button>
+            </div>
+        </div>
+
+        <div class="info-sections">
+            <!-- Taxonomy -->
+            <section class="info-section">
+                <h2>Taxonomy</h2>
+                <dl>
+                    ${plant.family ? `<dt>Family</dt><dd>${plant.family}${plant.family_common_name ? ` (${plant.family_common_name})` : ''}</dd>` : ''}
+                    ${plant.genus ? `<dt>Genus</dt><dd>${plant.genus}</dd>` : ''}
+                    ${plant.author ? `<dt>Author</dt><dd>${plant.author}</dd>` : ''}
+                    ${plant.year ? `<dt>Year</dt><dd>${plant.year}</dd>` : ''}
+                    ${plant.bibliography ? `<dt>Bibliography</dt><dd>${plant.bibliography}</dd>` : ''}
+                </dl>
+            </section>
+
+            <!-- Your Plant -->
+            ${plant.nickname || plant.location || plant.acquired_date || plant.status ? `
+            <section class="info-section">
+                <h2>Your Plant</h2>
+                <dl>
+                    ${plant.nickname ? `<dt>Nickname</dt><dd>${plant.nickname}</dd>` : ''}
+                    ${plant.location ? `<dt>Location</dt><dd>${plant.location}</dd>` : ''}
+                    ${plant.acquired_date ? `<dt>Acquired</dt><dd>${new Date(plant.acquired_date).toLocaleDateString()}</dd>` : ''}
+                    ${plant.status ? `<dt>Status</dt><dd>${plant.status}</dd>` : ''}
+                </dl>
+            </section>
+            ` : ''}
+
+            <!-- Care -->
+            ${metadata.care ? `
+            <section class="info-section">
+                <h2>Care</h2>
+                <dl>
+                    ${metadata.care.light ? `<dt>Light</dt><dd>${metadata.care.light}</dd>` : ''}
+                    ${metadata.care.water ? `<dt>Water</dt><dd>${metadata.care.water}</dd>` : ''}
+                    ${metadata.care.humidity ? `<dt>Humidity</dt><dd>${metadata.care.humidity}</dd>` : ''}
+                    ${metadata.care.soil ? `<dt>Soil</dt><dd>${metadata.care.soil}</dd>` : ''}
+                    ${metadata.care.notes ? `<dt>Notes</dt><dd>${metadata.care.notes}</dd>` : ''}
+                </dl>
+            </section>
+            ` : ''}
+
+            <!-- Patent/Breeding -->
+            ${metadata.patent || metadata.breeding || metadata.awards ? `
+            <section class="info-section">
+                <h2>Patent & Breeding</h2>
+                <dl>
+                    ${metadata.patent?.number ? `<dt>Patent</dt><dd>${metadata.patent.url ? `<a href="${metadata.patent.url}" target="_blank">${metadata.patent.number}</a>` : metadata.patent.number}</dd>` : ''}
+                    ${metadata.patent?.year_created ? `<dt>Year Created</dt><dd>${metadata.patent.year_created}</dd>` : ''}
+                    ${metadata.breeding?.parentage ? `<dt>Parentage</dt><dd>${metadata.breeding.parentage}</dd>` : ''}
+                    ${metadata.breeding?.breeder ? `<dt>Breeder</dt><dd>${metadata.breeding.breeder}</dd>` : ''}
+                    ${metadata.awards ? `<dt>Awards</dt><dd>${metadata.awards.join(', ')}</dd>` : ''}
+                </dl>
+            </section>
+            ` : ''}
+
+            <!-- Notes -->
+            ${plant.notes ? `
+            <section class="info-section">
+                <h2>Reference Notes</h2>
+                <div class="notes-content">${plant.notes.replace(/\n/g, '<br>')}</div>
+            </section>
+            ` : ''}
+
+            <!-- Synonyms -->
+            ${plant.synonyms && plant.synonyms.length > 0 ? `
+            <section class="info-section">
+                <h2>Synonyms</h2>
+                <p class="synonyms">${plant.synonyms.join(', ')}</p>
+            </section>
+            ` : ''}
+        </div>
+
+        <div class="meta-info">
+            <p>Added: ${new Date(plant.added_at).toLocaleDateString()}</p>
+            ${plant.updated_at ? `<p>Updated: ${new Date(plant.updated_at).toLocaleDateString()}</p>` : ''}
+            ${plant.trefle_id ? `<p>Trefle ID: ${plant.trefle_id}</p>` : ''}
+        </div>
+    `;
+
+    document.getElementById('edit-btn').addEventListener('click', showEditForm);
+}
+
+function showEditForm() {
+    const container = document.getElementById('plant-detail');
+    const plant = currentPlant;
+    const metadata = plant.metadata || {};
+
+    container.innerHTML = `
+        <form id="edit-form" class="edit-form">
+            <h1>Edit Plant</h1>
+
+            <div class="form-section">
+                <h2>Plant Identity</h2>
+                
+                <div class="form-group">
+                    <label for="scientific_name">Scientific Name *</label>
+                    <input type="text" id="scientific_name" name="scientific_name" required
+                        value="${plant.scientific_name || ''}">
+                </div>
+
+                <div class="form-group">
+                    <label for="common_name">Common Name</label>
+                    <input type="text" id="common_name" name="common_name"
+                        value="${plant.common_name || ''}">
+                </div>
+
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="genus">Genus</label>
+                        <input type="text" id="genus" name="genus"
+                            value="${plant.genus || ''}">
+                    </div>
+
+                    <div class="form-group">
+                        <label for="family">Family</label>
+                        <input type="text" id="family" name="family"
+                            value="${plant.family || ''}">
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label for="family_common_name">Family Common Name</label>
+                    <input type="text" id="family_common_name" name="family_common_name"
+                        value="${plant.family_common_name || ''}">
+                </div>
+
+                <div class="form-group">
+                    <label for="image_url">Image URL</label>
+                    <input type="url" id="image_url" name="image_url"
+                        value="${plant.image_url || ''}">
+                </div>
+            </div>
+
+            <div class="form-section">
+                <h2>Botanical Details</h2>
+
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="author">Author</label>
+                        <input type="text" id="author" name="author"
+                            value="${plant.author || ''}">
+                    </div>
+
+                    <div class="form-group">
+                        <label for="year">Year</label>
+                        <input type="number" id="year" name="year"
+                            value="${plant.year || ''}">
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label for="bibliography">Bibliography</label>
+                    <input type="text" id="bibliography" name="bibliography"
+                        value="${plant.bibliography || ''}">
+                </div>
+            </div>
+
+            <div class="form-section">
+                <h2>Patent & Breeding Info</h2>
+
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="patent_number">Patent Number</label>
+                        <input type="text" id="patent_number" name="patent_number"
+                            value="${metadata.patent?.number || ''}">
+                    </div>
+
+                    <div class="form-group">
+                        <label for="year_created">Year Created</label>
+                        <input type="number" id="year_created" name="year_created"
+                            value="${metadata.patent?.year_created || ''}">
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label for="patent_url">Patent URL</label>
+                    <input type="url" id="patent_url" name="patent_url"
+                        value="${metadata.patent?.url || ''}">
+                </div>
+
+                <div class="form-group">
+                    <label for="parentage">Parentage</label>
+                    <input type="text" id="parentage" name="parentage"
+                        value="${metadata.breeding?.parentage || ''}">
+                </div>
+
+                <div class="form-group">
+                    <label for="breeder">Breeder</label>
+                    <input type="text" id="breeder" name="breeder"
+                        value="${metadata.breeding?.breeder || ''}">
+                </div>
+
+                <div class="form-group">
+                    <label for="awards">Awards</label>
+                    <input type="text" id="awards" name="awards"
+                        value="${metadata.awards?.join(', ') || ''}">
+                </div>
+            </div>
+
+            <div class="form-section">
+                <h2>Care Information</h2>
+
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="care_light">Light</label>
+                        <input type="text" id="care_light" name="care_light"
+                            value="${metadata.care?.light || ''}">
+                    </div>
+
+                    <div class="form-group">
+                        <label for="care_humidity">Humidity</label>
+                        <input type="text" id="care_humidity" name="care_humidity"
+                            value="${metadata.care?.humidity || ''}">
+                    </div>
+                </div>
+
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="care_water">Water</label>
+                        <input type="text" id="care_water" name="care_water"
+                            value="${metadata.care?.water || ''}">
+                    </div>
+
+                    <div class="form-group">
+                        <label for="care_soil">Soil</label>
+                        <input type="text" id="care_soil" name="care_soil"
+                            value="${metadata.care?.soil || ''}">
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label for="care_notes">Care Notes</label>
+                    <input type="text" id="care_notes" name="care_notes"
+                        value="${metadata.care?.notes || ''}">
+                </div>
+            </div>
+
+            <div class="form-section">
+                <h2>Reference Notes</h2>
+
+                <div class="form-group">
+                    <textarea id="notes" name="notes" rows="6">${plant.notes || ''}</textarea>
+                </div>
+            </div>
+
+            <div class="form-section">
+                <h2>Your Plant</h2>
+
+                <div class="form-group">
+                    <label for="nickname">Nickname</label>
+                    <input type="text" id="nickname" name="nickname"
+                        value="${plant.nickname || ''}">
+                </div>
+
+                <div class="form-group">
+                    <label for="location">Location</label>
+                    <input type="text" id="location" name="location"
+                        value="${plant.location || ''}">
+                </div>
+
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="acquired_date">Acquired Date</label>
+                        <input type="date" id="acquired_date" name="acquired_date"
+                            value="${plant.acquired_date ? plant.acquired_date.split('T')[0] : ''}">
+                    </div>
+
+                    <div class="form-group">
+                        <label for="status">Status</label>
+                        <input type="text" id="status" name="status" list="status-options"
+                            value="${plant.status || ''}">
+                        <datalist id="status-options">
+                            <option value="thriving">
+                            <option value="settling in">
+                            <option value="struggling">
+                            <option value="recovering">
+                            <option value="dormant">
+                            <option value="wishlist">
+                            <option value="deceased">
+                        </datalist>
+                    </div>
+                </div>
+            </div>
+
+            <div class="form-actions">
+                <button type="button" class="cancel-btn" id="cancel-btn">Cancel</button>
+                <button type="submit" class="save-btn">Save Changes</button>
+            </div>
+
+            <div id="form-message" class="form-message"></div>
+        </form>
+    `;
+
+    document.getElementById('cancel-btn').addEventListener('click', () => displayPlant(currentPlant));
+    document.getElementById('edit-form').addEventListener('submit', handleSave);
+}
+
+async function handleSave(e) {
+    e.preventDefault();
+
+    const form = e.target;
+    const formData = new FormData(form);
+    const message = document.getElementById('form-message');
+    const saveBtn = form.querySelector('.save-btn');
+
+    saveBtn.disabled = true;
+    saveBtn.textContent = 'Saving...';
+    message.textContent = '';
+    message.className = 'form-message';
+
+    // Build metadata
+    const metadata = {};
+
+    const patentNumber = formData.get('patent_number');
+    const patentUrl = formData.get('patent_url');
+    const yearCreated = formData.get('year_created');
+    if (patentNumber || patentUrl || yearCreated) {
+        metadata.patent = {};
+        if (patentNumber) metadata.patent.number = patentNumber;
+        if (patentUrl) metadata.patent.url = patentUrl;
+        if (yearCreated) metadata.patent.year_created = parseInt(yearCreated);
+    }
+
+    const parentage = formData.get('parentage');
+    const breeder = formData.get('breeder');
+    if (parentage || breeder) {
+        metadata.breeding = {};
+        if (parentage) metadata.breeding.parentage = parentage;
+        if (breeder) metadata.breeding.breeder = breeder;
+    }
+
+    const awards = formData.get('awards');
+    if (awards) {
+        metadata.awards = awards.split(',').map(a => a.trim()).filter(a => a);
+    }
+
+    const careLight = formData.get('care_light');
+    const careHumidity = formData.get('care_humidity');
+    const careWater = formData.get('care_water');
+    const careSoil = formData.get('care_soil');
+    const careNotes = formData.get('care_notes');
+    if (careLight || careHumidity || careWater || careSoil || careNotes) {
+        metadata.care = {};
+        if (careLight) metadata.care.light = careLight;
+        if (careHumidity) metadata.care.humidity = careHumidity;
+        if (careWater) metadata.care.water = careWater;
+        if (careSoil) metadata.care.soil = careSoil;
+        if (careNotes) metadata.care.notes = careNotes;
+    }
+
+    const payload = {
+        id: currentPlant.id,
+        scientific_name: formData.get('scientific_name'),
+        common_name: formData.get('common_name') || null,
+        genus: formData.get('genus') || null,
+        family: formData.get('family') || null,
+        family_common_name: formData.get('family_common_name') || null,
+        image_url: formData.get('image_url') || null,
+        author: formData.get('author') || null,
+        bibliography: formData.get('bibliography') || null,
+        year: formData.get('year') ? parseInt(formData.get('year')) : null,
+        slug: currentPlant.slug,
+        trefle_id: currentPlant.trefle_id,
+        synonyms: currentPlant.synonyms,
+        metadata: Object.keys(metadata).length > 0 ? metadata : null,
+        notes: formData.get('notes') || null,
+        nickname: formData.get('nickname') || null,
+        location: formData.get('location') || null,
+        acquired_date: formData.get('acquired_date') || null,
+        status: formData.get('status') || null,
+    };
+
+    try {
+        const response = await fetch('/api/plants/update', {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload),
+        });
+
+        const result = await response.json();
+
+        if (response.ok) {
+            // Reload plant data and show display view
+            const refreshResponse = await fetch(`/api/plants/get?id=${currentPlant.id}`);
+            const refreshData = await refreshResponse.json();
+            currentPlant = refreshData.plant;
+            displayPlant(currentPlant);
+        } else {
+            message.textContent = `Error: ${result.error}`;
+            message.classList.add('error');
+            saveBtn.disabled = false;
+            saveBtn.textContent = 'Save Changes';
+        }
+    } catch (error) {
+        console.error('Error saving:', error);
+        message.textContent = `Error: ${error.message}`;
+        message.classList.add('error');
+        saveBtn.disabled = false;
+        saveBtn.textContent = 'Save Changes';
+    }
+}
+
+document.addEventListener('DOMContentLoaded', loadPlant);
+</script>
