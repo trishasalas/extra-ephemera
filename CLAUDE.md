@@ -42,11 +42,13 @@ src/
 
 netlify/
 ├── functions/       # Serverless API endpoints (.mjs files)
-│   ├── add-plant.mjs        # POST /api/plants
-│   ├── get-plants.mjs       # GET /api/plants/list
-│   ├── get-plant.mjs        # GET /api/plants/:id
-│   ├── update-plant.mjs     # PUT /api/plants/:id
-│   └── call-trefle.mjs      # GET /api/trefle?q=...
+│   ├── add-plant.mjs           # POST /api/plants
+│   ├── get-plants.mjs          # GET /api/plants/list
+│   ├── get-plant.mjs           # GET /api/plants/:id
+│   ├── update-plant.mjs        # PUT /api/plants/:id
+│   ├── call-trefle.mjs         # GET /api/trefle?q=...
+│   ├── call-perenual.mjs       # GET /api/perenual?q=...
+│   └── call-perenual-care.mjs  # GET /api/perenual-care?species_id=...
 └── utils/
     └── db.mjs       # Database connection helper (uses DATABASE_URL env var)
 
@@ -60,10 +62,15 @@ database/
 Four main tables (see `database/schema.sql` for full schema):
 
 1. **plants** - Main plant records with:
-   - Trefle API fields (scientific_name, common_name, family, genus, image_url, etc.)
+   - API fields (scientific_name, common_name, family, genus, image_url, etc.)
    - Trefle metadata (author, bibliography, year, synonyms, trefle_id, slug)
+   - Perenual tracking (perenual_id) - optional, for merged plants
    - Personal fields (nickname, location, acquired_date, status)
-   - Flexible JSONB metadata field for arbitrary data
+   - Flexible JSONB metadata field for arbitrary data including:
+     - `source`: API source ('trefle', 'perenual', or merged)
+     - `merged_from`: Array of sources for merged plants
+     - `care`: Care information (water, light, pruning, humidity, soil, notes)
+     - `patent`, `breeding`, `awards`: Cultivar-specific metadata
    - Auto-updating timestamps via triggers
 
 2. **journal_entries** - Dated journal entries per plant (CASCADE on delete)
@@ -74,12 +81,22 @@ Four main tables (see `database/schema.sql` for full schema):
 
 ### API Integration
 
-**Trefle Plant API** (primary plant search):
+**Trefle Plant API** (botanical accuracy):
 - Token stored in `.env` as `VITE_TREFLE_API`
 - Proxied through `/api/trefle` Netlify function to hide API key
-- Used for searching plants on homepage
+- Used for searching plants and academic metadata
+- Free tier available
 
-**PlantNet API** (secondary, for identification):
+**Perenual Plant API** (care guide data):
+- Token stored in `.env` as `VITE_PERENUAL_API`
+- Proxied through two Netlify functions:
+  - `/api/perenual` - Species search endpoint
+  - `/api/perenual-care` - Care guide endpoint (note: uses `/api/species-care-guide-list`, not `/api/v2/...`)
+- Premium subscription: $50/month for 10,000 requests/day
+- Provides watering, sunlight, pruning, and hardiness zone data
+- Data normalized to match Trefle structure in backend
+
+**PlantNet API** (for plant identification):
 - Token stored in `.env` as `PLANTNET_API`
 - Not currently integrated in UI
 
@@ -175,12 +192,65 @@ function createCard(data) {
 - Backend-only vars (like DATABASE_URL) don't need prefix
 - Netlify CLI automatically injects DATABASE_URL when using `netlify dev`
 
+**Required environment variables:**
+```env
+VITE_TREFLE_API=your-trefle-token
+VITE_PERENUAL_API=sk-your-perenual-key
+DATABASE_URL=postgresql://... (auto-injected by Netlify)
+PLANTNET_API=your-plantnet-key (optional, not currently used)
+```
+
+### API Comparison & Smart Merge
+
+**Comparison Modal Pattern:**
+The comparison feature uses native `<dialog>` element for accessibility:
+- Wire up close buttons in `openComparisonModal()` (not in display functions)
+- Handle loading, error, and success states separately
+- Use template cloning for comparison rows
+
+**Smart Merge Algorithm:**
+When merging plants from different APIs:
+1. Prefer non-null values over null
+2. For text fields with both values, prefer longer/richer content
+3. Merge synonym arrays and deduplicate
+4. Store both API IDs (trefle_id, perenual_id) for tracking
+5. Map care guide data to unified `metadata.care` structure
+
+**Care Data Normalization:**
+Perenual care guide data is mapped to existing care fields:
+- `care_guide.watering` → `metadata.care.water`
+- `care_guide.sunlight[]` → `metadata.care.light` (array joined to string)
+- `care_guide.pruning` → `metadata.care.pruning`
+
+This ensures one source of truth for all care information.
+
 ## Current Features
 
-1. **Search Plants** (`/` - index.astro): Search Trefle API and add plants to collection
-2. **View Collection** (`/collection` - collection.astro): Display all plants from database
-3. **Add Cultivar Manually** (`/add` - add.astro): Form for manual plant entry
-4. **Plant Detail Page** (`/plant` - plant.astro): Individual plant details and editing
+1. **Search Plants** (`/` - index.astro):
+   - Search Trefle or Perenual APIs (radio button selector)
+   - Add plants to collection directly
+   - **Compare APIs**: Click "Compare with [API]" on any result to:
+     - Find matching plant in the other API
+     - View side-by-side comparison with differences highlighted
+     - Auto-fetch care guide data from Perenual
+     - Smart merge data from both sources
+     - Preview merged result before saving
+     - Track both trefle_id and perenual_id
+
+2. **View Collection** (`/collection` - collection.astro):
+   - Display all plants from database in grid layout
+   - Show care info icons (💧 water, ☀️ light) when available
+   - Click plant to view details
+
+3. **Add Cultivar Manually** (`/add` - add.astro):
+   - Form for manual plant entry
+   - Useful for cultivars not in APIs
+
+4. **Plant Detail Page** (`/plant` - plant.astro):
+   - Individual plant details with all metadata
+   - Care section with icons (☀️ Light, 💧 Water, ✂️ Pruning)
+   - Edit mode for updating plant information
+   - Care data automatically populated from Perenual when available
 
 ## Database Setup Process
 
