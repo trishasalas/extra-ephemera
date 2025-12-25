@@ -15,6 +15,15 @@ interface PlantSearchResult {
     perenual_id?: number;
     trefle_id?: number;
     metadata?: any;
+    care_guide?: {
+        watering?: string;
+        sunlight?: string[];
+        pruning?: string;
+        hardiness?: {
+            min?: string;
+            max?: string;
+        };
+    };
 }
 
 interface ComparisonResult {
@@ -183,6 +192,51 @@ async function addToCollection(plant: PlantSearchResult, button: HTMLButtonEleme
     }
 }
 
+async function fetchPerenualCareGuide(speciesId: number | string): Promise<any> {
+    try {
+        const response = await fetch(`/api/perenual-care?species_id=${speciesId}`);
+
+        // Check for rate limiting
+        if (response.status === 429) {
+            console.warn('Rate limit exceeded for Perenual API - care guide unavailable');
+            return null;
+        }
+
+        const data = await response.json();
+
+        // Check for error responses
+        if (data.error || data.message) {
+            console.warn('Perenual care guide error:', data.error || data.message);
+            return null;
+        }
+
+        if (!data.data || data.data.length === 0) {
+            console.log('No care guide data found for species:', speciesId);
+            return null;
+        }
+
+        // Extract care guide information
+        const careData = data.data[0];
+        console.log('Care data received:', careData);
+
+        // Parse the sections
+        const sections = careData.section || [];
+
+        return {
+            watering: sections.find((s: any) => s.type === 'watering')?.description || null,
+            sunlight: sections.find((s: any) => s.type === 'sunlight')?.description?.split(',').map((s: string) => s.trim()) || null,
+            pruning: sections.find((s: any) => s.type === 'pruning')?.description || null,
+            hardiness: {
+                min: sections.find((s: any) => s.type === 'hardiness')?.description?.match(/(\d+[a-z]?)/i)?.[0] || null,
+                max: sections.find((s: any) => s.type === 'hardiness')?.description?.match(/to (\d+[a-z]?)/i)?.[1] || null,
+            }
+        };
+    } catch (error) {
+        console.error('Failed to fetch care guide:', error);
+        return null;
+    }
+}
+
 async function searchOtherApi(scientificName: string, apiSource: 'trefle' | 'perenual'): Promise<PlantSearchResult | null> {
     const endpoint = apiSource === 'trefle' ? '/api/trefle' : '/api/perenual';
     const response = await fetch(`${endpoint}?q=${encodeURIComponent(scientificName)}`);
@@ -194,14 +248,25 @@ async function searchOtherApi(scientificName: string, apiSource: 'trefle' | 'per
     const exactMatch = data.data.find((p: PlantSearchResult) =>
         p.scientific_name.toLowerCase() === scientificName.toLowerCase()
     );
-    if (exactMatch) return exactMatch;
+    let matchedPlant = exactMatch;
 
-    const genusName = scientificName.split(' ')[0].toLowerCase();
-    const genusMatch = data.data.find((p: PlantSearchResult) =>
-        p.scientific_name.toLowerCase().startsWith(genusName)
-    );
+    if (!matchedPlant) {
+        const genusName = scientificName.split(' ')[0].toLowerCase();
+        const genusMatch = data.data.find((p: PlantSearchResult) =>
+            p.scientific_name.toLowerCase().startsWith(genusName)
+        );
+        matchedPlant = genusMatch || data.data[0];
+    }
 
-    return genusMatch || data.data[0];
+    // If it's Perenual, fetch care guide data
+    if (matchedPlant && apiSource === 'perenual') {
+        const careGuide = await fetchPerenualCareGuide(matchedPlant.id);
+        if (careGuide) {
+            matchedPlant.care_guide = careGuide;
+        }
+    }
+
+    return matchedPlant;
 }
 
 function smartMergePlants(plant1: PlantSearchResult, plant2: PlantSearchResult): ComparisonResult {
@@ -243,6 +308,14 @@ function smartMergePlants(plant1: PlantSearchResult, plant2: PlantSearchResult):
         }
     }
 
+    // Care guide: prefer non-null
+    if (plant1.care_guide || plant2.care_guide) {
+        merged.care_guide = plant2.care_guide || plant1.care_guide;
+        if (JSON.stringify(plant1.care_guide) !== JSON.stringify(plant2.care_guide)) {
+            differences.add('care_guide');
+        }
+    }
+
     // Store both IDs
     merged.trefle_id = plant1.source === 'trefle' ? plant1.id : plant2.source === 'trefle' ? plant2.id : null;
     merged.perenual_id = plant1.source === 'perenual' ? plant1.id : plant2.source === 'perenual' ? plant2.id : null;
@@ -254,6 +327,11 @@ function smartMergePlants(plant1: PlantSearchResult, plant2: PlantSearchResult):
 async function openComparisonModal(originalPlant: PlantSearchResult, targetApi: 'trefle' | 'perenual') {
     const modal = document.getElementById('comparison-modal') as HTMLDialogElement;
     if (!modal) return;
+
+    // Wire up close/cancel buttons once when modal opens
+    modal.querySelectorAll('.cancel-btn, .modal-close').forEach(btn => {
+        (btn as HTMLButtonElement).onclick = () => modal.close();
+    });
 
     showModalLoading(modal, targetApi);
     modal.showModal();
@@ -305,22 +383,75 @@ function displayComparison(modal: HTMLDialogElement, result: ComparisonResult) {
         tbody.appendChild(row);
     });
 
+    // Add care guide rows if either plant has care data
+    if (result.original.care_guide || result.matched?.care_guide) {
+        // Watering
+        const wateringRow = createComparisonRow(
+            'care_guide' as keyof PlantSearchResult,
+            result.original.care_guide?.watering,
+            result.matched?.care_guide?.watering,
+            result.merged.care_guide?.watering,
+            result.differences.has('care_guide'),
+            'Watering'
+        );
+        tbody.appendChild(wateringRow);
+
+        // Sunlight
+        const sunlightRow = createComparisonRow(
+            'care_guide' as keyof PlantSearchResult,
+            result.original.care_guide?.sunlight,
+            result.matched?.care_guide?.sunlight,
+            result.merged.care_guide?.sunlight,
+            result.differences.has('care_guide'),
+            'Sunlight'
+        );
+        tbody.appendChild(sunlightRow);
+
+        // Pruning
+        const pruningRow = createComparisonRow(
+            'care_guide' as keyof PlantSearchResult,
+            result.original.care_guide?.pruning,
+            result.matched?.care_guide?.pruning,
+            result.merged.care_guide?.pruning,
+            result.differences.has('care_guide'),
+            'Pruning'
+        );
+        tbody.appendChild(pruningRow);
+
+        // Hardiness
+        const hardinessValue1 = result.original.care_guide?.hardiness?.min && result.original.care_guide?.hardiness?.max
+            ? `${result.original.care_guide.hardiness.min} - ${result.original.care_guide.hardiness.max}`
+            : null;
+        const hardinessValue2 = result.matched?.care_guide?.hardiness?.min && result.matched?.care_guide?.hardiness?.max
+            ? `${result.matched.care_guide.hardiness.min} - ${result.matched.care_guide.hardiness.max}`
+            : null;
+        const mergedHardinessValue = result.merged.care_guide?.hardiness?.min && result.merged.care_guide?.hardiness?.max
+            ? `${result.merged.care_guide.hardiness.min} - ${result.merged.care_guide.hardiness.max}`
+            : null;
+
+        const hardinessRow = createComparisonRow(
+            'care_guide' as keyof PlantSearchResult,
+            hardinessValue1,
+            hardinessValue2,
+            mergedHardinessValue,
+            result.differences.has('care_guide'),
+            'Hardiness Zones'
+        );
+        tbody.appendChild(hardinessRow);
+    }
+
     // Preview
     displayPreview(modal, result.merged);
 
-    // Wire buttons
+    // Wire save button
     const saveBtn = modal.querySelector('.save-merged-btn') as HTMLButtonElement;
     saveBtn.onclick = () => {
         addToCollection(result.merged, saveBtn);
         modal.close();
     };
-
-    modal.querySelectorAll('.cancel-btn, .modal-close').forEach(btn => {
-        (btn as HTMLButtonElement).onclick = () => modal.close();
-    });
 }
 
-function createComparisonRow(fieldName: keyof PlantSearchResult, val1: any, val2: any, merged: any, isDifferent: boolean): HTMLElement {
+function createComparisonRow(fieldName: keyof PlantSearchResult, val1: any, val2: any, merged: any, isDifferent: boolean, customLabel?: string): HTMLElement {
     const template = document.getElementById('comparison-row-template') as HTMLTemplateElement;
     const row = template.content.cloneNode(true) as DocumentFragment;
     const tr = row.querySelector('tr') as HTMLElement;
@@ -328,7 +459,7 @@ function createComparisonRow(fieldName: keyof PlantSearchResult, val1: any, val2
     if (isDifferent) tr.classList.add('different');
 
     const fieldLabel = row.querySelector('.field-name') as HTMLElement;
-    fieldLabel.textContent = String(fieldName).replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
+    fieldLabel.textContent = customLabel || String(fieldName).replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
 
     const val1El = row.querySelector('.value-1') as HTMLElement;
     const val2El = row.querySelector('.value-2') as HTMLElement;
