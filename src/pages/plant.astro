@@ -12,15 +12,62 @@ import Layout from '../layouts/Layout.astro';
 </Layout>
 
 <script>
-let currentPlant = null;
+interface PlantData {
+    id: number;
+    scientific_name: string;
+    common_name?: string | null;
+    family?: string | null;
+    family_common_name?: string | null;
+    genus?: string | null;
+    image_url?: string | null;
+    author?: string | null;
+    bibliography?: string | null;
+    year?: number | null;
+    synonyms?: string[] | null;
+    slug?: string | null;
+    trefle_id?: number | null;
+    metadata?: {
+        patent?: {
+            number?: string;
+            url?: string;
+            year_created?: number;
+        };
+        breeding?: {
+            parentage?: string;
+            breeder?: string;
+        };
+        awards?: string[];
+        care?: {
+            light?: string;
+            water?: string;
+            humidity?: string;
+            soil?: string;
+            notes?: string;
+        };
+    } | null;
+    notes?: string | null;
+    nickname?: string | null;
+    location?: string | null;
+    acquired_date?: string | null;
+    status?: string | null;
+    added_at: string;
+    updated_at?: string | null;
+}
+
+let currentPlant: PlantData | null = null;
 let isEditing = false;
 
 async function loadPlant() {
     const params = new URLSearchParams(window.location.search);
     const id = params.get('id');
 
+    const loadingEl = document.getElementById('loading');
+    const detailEl = document.getElementById('plant-detail');
+
+    if (!loadingEl || !detailEl) return;
+
     if (!id) {
-        document.getElementById('loading').textContent = 'No plant ID provided.';
+        loadingEl.textContent = 'No plant ID provided.';
         return;
     }
 
@@ -28,22 +75,24 @@ async function loadPlant() {
         const response = await fetch(`/api/plants/get?id=${id}`);
         const data = await response.json();
 
-        document.getElementById('loading').style.display = 'none';
+        loadingEl.style.display = 'none';
 
         if (data.plant) {
             currentPlant = data.plant;
             displayPlant(data.plant);
         } else {
-            document.getElementById('plant-detail').innerHTML = '<p>Plant not found.</p>';
+            detailEl.textContent = 'Plant not found.';
         }
     } catch (error) {
         console.error('Error loading plant:', error);
-        document.getElementById('loading').textContent = 'Error loading plant.';
+        loadingEl.textContent = 'Error loading plant.';
     }
 }
 
-function displayPlant(plant) {
+function displayPlant(plant: PlantData) {
     const container = document.getElementById('plant-detail');
+    if (!container) return;
+
     const displayName = plant.nickname || plant.common_name || plant.scientific_name;
     const metadata = plant.metadata || {};
 
@@ -145,11 +194,16 @@ function displayPlant(plant) {
         </div>
     `;
 
-    document.getElementById('edit-btn').addEventListener('click', showEditForm);
+    const editBtn = document.getElementById('edit-btn');
+    if (editBtn) {
+        editBtn.addEventListener('click', showEditForm);
+    }
 }
 
 function showEditForm() {
     const container = document.getElementById('plant-detail');
+    if (!container || !currentPlant) return;
+
     const plant = currentPlant;
     const metadata = plant.metadata || {};
 
@@ -359,17 +413,28 @@ function showEditForm() {
         </form>
     `;
 
-    document.getElementById('cancel-btn').addEventListener('click', () => displayPlant(currentPlant));
-    document.getElementById('edit-form').addEventListener('submit', handleSave);
+    const cancelBtn = document.getElementById('cancel-btn');
+    const editForm = document.getElementById('edit-form') as HTMLFormElement;
+
+    if (cancelBtn && currentPlant) {
+        cancelBtn.addEventListener('click', () => displayPlant(currentPlant!));
+    }
+    if (editForm) {
+        editForm.addEventListener('submit', handleSave);
+    }
 }
 
-async function handleSave(e) {
+async function handleSave(e: Event) {
     e.preventDefault();
 
-    const form = e.target;
+    if (!currentPlant) return;
+
+    const form = e.target as HTMLFormElement;
     const formData = new FormData(form);
     const message = document.getElementById('form-message');
-    const saveBtn = form.querySelector('.save-btn');
+    const saveBtn = form.querySelector('.save-btn') as HTMLButtonElement;
+
+    if (!message || !saveBtn) return;
 
     saveBtn.disabled = true;
     saveBtn.textContent = 'Saving...';
@@ -377,7 +442,7 @@ async function handleSave(e) {
     message.className = 'form-message';
 
     // Build metadata
-    const metadata = {};
+    const metadata: any = {};
 
     const patentNumber = formData.get('patent_number');
     const patentUrl = formData.get('patent_url');

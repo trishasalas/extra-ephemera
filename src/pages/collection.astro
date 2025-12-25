@@ -16,12 +16,39 @@ import Layout from '../layouts/Layout.astro';
         <div id="loading" class="loading">Loading your plants...</div>
         <div id="collection" class="collection"></div>
     </div>
+
+    <template id="plant-card-template">
+        <div class="plant-card">
+            <img class="card-image" alt="" width="200px">
+            <div class="no-image">No image</div>
+            <div class="card-content">
+                <h3><a href="#" class="card-link"></a></h3>
+                <p class="subtitle"></p>
+                <p class="taxonomy"></p>
+                <p class="location"></p>
+                <span class="status-badge"></span>
+            </div>
+        </div>
+    </template>
 </Layout>
 
 <script>
+interface Plant {
+    id: number;
+    scientific_name: string;
+    common_name?: string | null;
+    family?: string | null;
+    nickname?: string | null;
+    location?: string | null;
+    status?: string | null;
+    image_url?: string | null;
+}
+
 async function loadCollection() {
     const loadingEl = document.getElementById('loading');
     const collectionEl = document.getElementById('collection');
+
+    if (!loadingEl || !collectionEl) return;
 
     try {
         const response = await fetch('/api/plants/list');
@@ -45,8 +72,10 @@ async function loadCollection() {
     }
 }
 
-function displayCollection(plants) {
+function displayCollection(plants: Plant[]) {
     const collectionEl = document.getElementById('collection');
+    if (!collectionEl) return;
+
     collectionEl.innerHTML = '';
 
     plants.forEach(plant => {
@@ -55,30 +84,64 @@ function displayCollection(plants) {
     });
 }
 
-function createPlantCard(plant) {
+function createPlantCard(plant: Plant): HTMLElement {
+    const template = document.getElementById('plant-card-template') as HTMLTemplateElement;
+    if (!template) throw new Error('Template not found');
+
+    const card = template.content.cloneNode(true) as DocumentFragment;
+    const cardEl = card.querySelector('.plant-card') as HTMLElement;
+
+    // Handle image
+    const img = card.querySelector('.card-image') as HTMLImageElement;
+    const noImage = card.querySelector('.no-image') as HTMLElement;
+    if (plant.image_url) {
+        img.src = plant.image_url;
+        img.alt = plant.scientific_name;
+        noImage.remove();
+    } else {
+        img.remove();
+    }
+
+    // Set link and display name
+    const link = card.querySelector('.card-link') as HTMLAnchorElement;
     const displayName = plant.nickname || plant.common_name || plant.scientific_name;
+    link.href = `/plant?id=${plant.id}`;
+    link.textContent = displayName;
+
+    // Handle subtitle
+    const subtitleEl = card.querySelector('.subtitle') as HTMLElement;
     const subtitle = plant.nickname ? (plant.common_name || plant.scientific_name) : plant.scientific_name;
-    const showSubtitle = displayName !== subtitle;
+    if (displayName !== subtitle) {
+        subtitleEl.textContent = `Common Name: ${subtitle}`;
+    } else {
+        subtitleEl.remove();
+    }
 
-    const card = document.createElement('div');
-    card.href = `/plant?id=${plant.id}`;
-    card.className = 'plant-card';
+    // Handle family
+    const taxonomyEl = card.querySelector('.taxonomy') as HTMLElement;
+    if (plant.family) {
+        taxonomyEl.textContent = `Family: ${plant.family}`;
+    } else {
+        taxonomyEl.remove();
+    }
 
-    card.innerHTML = `
-        ${plant.image_url 
-            ? `<img src="${plant.image_url}" alt="${plant.scientific_name}" width="200px">` 
-            : '<div class="no-image">No image</div>'
-        }
-        <div class="card-content">
-            <h3>${displayName}</h3>
-            ${showSubtitle ? `<p class="subtitle">${subtitle}</p>` : ''}
-            ${plant.family ? `<p class="taxonomy">${plant.family}</p>` : ''}
-            ${plant.location ? `<p class="location">📍 ${plant.location}</p>` : ''}
-            ${plant.status ? `<span class="status-badge">${plant.status}</span>` : ''}
-        </div>
-    `;
+    // Handle location
+    const locationEl = card.querySelector('.location') as HTMLElement;
+    if (plant.location) {
+        locationEl.textContent = `📍 ${plant.location}`;
+    } else {
+        locationEl.remove();
+    }
 
-    return card;
+    // Handle status
+    const statusEl = card.querySelector('.status-badge') as HTMLElement;
+    if (plant.status) {
+        statusEl.textContent = plant.status;
+    } else {
+        statusEl.remove();
+    }
+
+    return cardEl;
 }
 
 document.addEventListener('DOMContentLoaded', loadCollection);

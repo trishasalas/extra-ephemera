@@ -9,6 +9,17 @@ import Layout from '../layouts/Layout.astro';
             <p>The Mosslight Nook Plant Catalog</p>
         </header>
 
+        <div class="api-selector">
+            <label class="api-option">
+                <input type="radio" name="api-source" id="api-trefle" value="trefle" checked>
+                <span>Trefle</span>
+            </label>
+            <label class="api-option">
+                <input type="radio" name="api-source" id="api-perenual" value="perenual">
+                <span>Perenual</span>
+            </label>
+        </div>
+
         <form id="search-form" class="search-form">
             <input
                 type="text"
@@ -23,4 +34,18 @@ import Layout from '../layouts/Layout.astro';
 
         <div id="results" class="results"></div>
     </div>
+
+    <template id="search-result-template">
+        <div class="plant-card">
+            <img class="card-image" alt="">
+            <div class="no-image">No image</div>
+            <div class="card-content">
+                <h3 class="scientific-name"></h3>
+                <p class="common-name"></p>
+                <p class="taxonomy family"><strong>Family:</strong> <span class="family-value"></span></p>
+                <p class="taxonomy genus"><strong>Genus:</strong> <span class="genus-value"></span></p>
+                <button class="add-btn">Add to Collection</button>
+            </div>
+        </div>
+    </template>
 </Layout>
