@@ -161,8 +161,17 @@ async function addToCollection(plant: PlantSearchResult, button: HTMLButtonEleme
         author: plant.author,
         synonyms: plant.synonyms || [],
 
-        // Store source or merged metadata for tracking
-        metadata: plant.metadata || { source: plant.source }
+        // Store source and map care_guide to care fields
+        metadata: {
+            ...(plant.metadata || { source: plant.source }),
+            ...(plant.care_guide && {
+                care: {
+                    water: plant.care_guide.watering || null,
+                    light: plant.care_guide.sunlight ? plant.care_guide.sunlight.join(', ') : null,
+                    pruning: plant.care_guide.pruning || null
+                }
+            })
+        }
     };
 
     console.log('Adding to collection:', payload);

@@ -42,6 +42,7 @@ interface PlantData {
             water?: string;
             humidity?: string;
             soil?: string;
+            pruning?: string;
             notes?: string;
         };
     } | null;
@@ -147,8 +148,9 @@ function displayPlant(plant: PlantData) {
             <section class="info-section">
                 <h2>Care</h2>
                 <dl>
-                    ${metadata.care.light ? `<dt>Light</dt><dd>${metadata.care.light}</dd>` : ''}
-                    ${metadata.care.water ? `<dt>Water</dt><dd>${metadata.care.water}</dd>` : ''}
+                    ${metadata.care.light ? `<dt>☀️ Light</dt><dd>${metadata.care.light}</dd>` : ''}
+                    ${metadata.care.water ? `<dt>💧 Water</dt><dd>${metadata.care.water}</dd>` : ''}
+                    ${metadata.care.pruning ? `<dt>✂️ Pruning</dt><dd>${metadata.care.pruning}</dd>` : ''}
                     ${metadata.care.humidity ? `<dt>Humidity</dt><dd>${metadata.care.humidity}</dd>` : ''}
                     ${metadata.care.soil ? `<dt>Soil</dt><dd>${metadata.care.soil}</dd>` : ''}
                     ${metadata.care.notes ? `<dt>Notes</dt><dd>${metadata.care.notes}</dd>` : ''}
@@ -351,6 +353,12 @@ function showEditForm() {
                 </div>
 
                 <div class="form-group">
+                    <label for="care_pruning">Pruning</label>
+                    <input type="text" id="care_pruning" name="care_pruning"
+                        value="${metadata.care?.pruning || ''}">
+                </div>
+
+                <div class="form-group">
                     <label for="care_notes">Care Notes</label>
                     <input type="text" id="care_notes" name="care_notes"
                         value="${metadata.care?.notes || ''}">
@@ -471,14 +479,24 @@ async function handleSave(e: Event) {
     const careHumidity = formData.get('care_humidity');
     const careWater = formData.get('care_water');
     const careSoil = formData.get('care_soil');
+    const carePruning = formData.get('care_pruning');
     const careNotes = formData.get('care_notes');
-    if (careLight || careHumidity || careWater || careSoil || careNotes) {
+    if (careLight || careHumidity || careWater || careSoil || carePruning || careNotes) {
         metadata.care = {};
         if (careLight) metadata.care.light = careLight;
         if (careHumidity) metadata.care.humidity = careHumidity;
         if (careWater) metadata.care.water = careWater;
         if (careSoil) metadata.care.soil = careSoil;
+        if (carePruning) metadata.care.pruning = carePruning;
         if (careNotes) metadata.care.notes = careNotes;
+    }
+
+    // Preserve existing source data
+    if (currentPlant.metadata?.source) {
+        metadata.source = currentPlant.metadata.source;
+    }
+    if (currentPlant.metadata?.merged_from) {
+        metadata.merged_from = currentPlant.metadata.merged_from;
     }
 
     const payload = {

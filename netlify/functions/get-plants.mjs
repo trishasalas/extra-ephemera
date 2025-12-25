@@ -5,7 +5,7 @@ export default async (request, context) => {
         const sql = getDb();
 
         const plants = await sql`
-            SELECT 
+            SELECT
                 id,
                 scientific_name,
                 common_name,
@@ -16,6 +16,7 @@ export default async (request, context) => {
                 nickname,
                 location,
                 status,
+                metadata,
                 added_at
             FROM plants
             ORDER BY added_at DESC

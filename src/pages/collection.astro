@@ -26,6 +26,10 @@ import Layout from '../layouts/Layout.astro';
                 <p class="subtitle"></p>
                 <p class="taxonomy"></p>
                 <p class="location"></p>
+                <div class="care-info">
+                    <span class="care-item watering">💧 <span class="watering-text"></span></span>
+                    <span class="care-item sunlight">☀️ <span class="sunlight-text"></span></span>
+                </div>
                 <span class="status-badge"></span>
             </div>
         </div>
@@ -42,6 +46,14 @@ interface Plant {
     location?: string | null;
     status?: string | null;
     image_url?: string | null;
+    metadata?: {
+        source?: string;
+        care?: {
+            water?: string;
+            light?: string;
+            pruning?: string;
+        };
+    };
 }
 
 async function loadCollection() {
@@ -131,6 +143,36 @@ function createPlantCard(plant: Plant): HTMLElement {
         locationEl.textContent = `📍 ${plant.location}`;
     } else {
         locationEl.remove();
+    }
+
+    // Handle care info
+    const careInfoEl = card.querySelector('.care-info') as HTMLElement;
+    const care = plant.metadata?.care;
+
+    if (care && (care.water || care.light)) {
+        // Watering
+        const wateringItem = card.querySelector('.watering') as HTMLElement;
+        const wateringText = card.querySelector('.watering-text') as HTMLElement;
+        if (care.water) {
+            // Shorten long watering descriptions
+            const shortWater = care.water.length > 30
+                ? care.water.substring(0, 30) + '...'
+                : care.water;
+            wateringText.textContent = shortWater;
+        } else {
+            wateringItem.remove();
+        }
+
+        // Light/Sunlight
+        const sunlightItem = card.querySelector('.sunlight') as HTMLElement;
+        const sunlightText = card.querySelector('.sunlight-text') as HTMLElement;
+        if (care.light) {
+            sunlightText.textContent = care.light;
+        } else {
+            sunlightItem.remove();
+        }
+    } else {
+        careInfoEl.remove();
     }
 
     // Handle status
