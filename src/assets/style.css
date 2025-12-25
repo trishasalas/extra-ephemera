@@ -600,6 +600,185 @@ header p {
     font-size: 0.75rem;
 }
 
+/* Compare Button */
+.card-actions {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    margin-top: 1rem;
+}
+
+.compare-btn {
+    width: 100%;
+    padding: 0.6rem 1rem;
+    background: white;
+    color: #2d5a27;
+    border: 2px solid #2d5a27;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 0.9rem;
+    font-weight: 500;
+}
+
+.compare-btn:hover {
+    background: #2d5a27;
+    color: white;
+}
+
+/* Modal */
+.comparison-modal {
+    border: none;
+    border-radius: 12px;
+    padding: 0;
+    max-width: 90vw;
+    max-height: 90vh;
+    width: 900px;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+}
+
+.comparison-modal::backdrop {
+    background: rgba(0, 0, 0, 0.6);
+}
+
+.modal-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 1.5rem;
+    border-bottom: 1px solid #eee;
+    background: #f5f7f5;
+}
+
+.modal-header h2 {
+    margin: 0;
+    color: #2d5a27;
+}
+
+.modal-close {
+    background: none;
+    border: none;
+    font-size: 2rem;
+    color: #666;
+    cursor: pointer;
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+}
+
+.modal-close:hover {
+    background: #e0e0e0;
+}
+
+.modal-body {
+    padding: 1.5rem;
+    overflow-y: auto;
+    max-height: calc(90vh - 80px);
+}
+
+.comparison-loading {
+    text-align: center;
+    padding: 3rem;
+    color: #666;
+}
+
+.comparison-error {
+    text-align: center;
+    padding: 3rem;
+}
+
+.comparison-error .error-message {
+    color: #c62828;
+    margin-bottom: 1.5rem;
+}
+
+/* Comparison Table */
+.comparison-table {
+    width: 100%;
+    border-collapse: collapse;
+    background: white;
+    margin-bottom: 2rem;
+}
+
+.comparison-table th,
+.comparison-table td {
+    padding: 0.75rem;
+    text-align: left;
+    border-bottom: 1px solid #eee;
+}
+
+.comparison-table th {
+    background: #f5f7f5;
+    font-weight: 600;
+    position: sticky;
+    top: 0;
+}
+
+.comparison-table tr.different {
+    background: #fff8e1;
+}
+
+.comparison-table tr.different .merged-value {
+    background: #ffeb3b;
+    font-weight: 500;
+}
+
+.merge-preview {
+    background: white;
+    border-radius: 12px;
+    padding: 1.5rem;
+    margin-bottom: 1.5rem;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.merge-preview h3 {
+    margin: 0 0 1rem;
+}
+
+.modal-actions {
+    display: flex;
+    gap: 1rem;
+    justify-content: flex-end;
+    padding-top: 1.5rem;
+    border-top: 1px solid #eee;
+}
+
+.save-merged-btn {
+    padding: 0.75rem 1.5rem;
+    background: #2d5a27;
+    color: white;
+    border: none;
+    border-radius: 6px;
+    cursor: pointer;
+    font-weight: 500;
+}
+
+.save-merged-btn:hover {
+    background: #1e3d1a;
+}
+
+.retry-btn {
+    padding: 0.75rem 1.5rem;
+    background: #2d5a27;
+    color: white;
+    border: none;
+    border-radius: 6px;
+    cursor: pointer;
+}
+
+@media (max-width: 768px) {
+    .comparison-modal {
+        width: 95vw;
+    }
+
+    .comparison-table {
+        font-size: 0.85rem;
+    }
+
+    .modal-actions {
+        flex-direction: column;
+    }
+}
+
 @media (max-width: 600px) {
     .plant-header {
         flex-direction: column;

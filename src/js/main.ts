@@ -12,6 +12,16 @@ interface PlantSearchResult {
     bibliography?: string | null;
     author?: string | null;
     synonyms?: string[] | null;
+    perenual_id?: number;
+    trefle_id?: number;
+    metadata?: any;
+}
+
+interface ComparisonResult {
+    original: PlantSearchResult;
+    matched: PlantSearchResult | null;
+    merged: PlantSearchResult;
+    differences: Set<keyof PlantSearchResult>;
 }
 
 async function searchPlants(query: string = 'alocasia', apiSource: 'trefle' | 'perenual' = 'trefle') {
@@ -98,6 +108,16 @@ function createPlantCard(plant: PlantSearchResult): HTMLElement {
         genusEl.remove();
     }
 
+    // Wire up the compare button
+    const compareBtn = card.querySelector('.compare-btn') as HTMLButtonElement;
+    const currentSource = plant.source || 'trefle';
+    const otherSource = currentSource === 'trefle' ? 'perenual' : 'trefle';
+    compareBtn.textContent = `Compare with ${otherSource.charAt(0).toUpperCase() + otherSource.slice(1)}`;
+
+    compareBtn.addEventListener('click', () => {
+        openComparisonModal(plant, otherSource);
+    });
+
     // Wire up the add button
     const addBtn = card.querySelector('.add-btn') as HTMLButtonElement;
     addBtn.addEventListener('click', () => {
@@ -112,11 +132,13 @@ async function addToCollection(plant: PlantSearchResult, button: HTMLButtonEleme
     button.disabled = true;
     button.textContent = 'Adding...';
 
-    // Prepare the payload - handle both Trefle and Perenual sources
+    // Prepare the payload - handle both Trefle and Perenual sources, including merged plants
     const payload = {
-        // Use source-specific ID field name for tracking
-        ...(plant.source === 'perenual' && { perenual_id: plant.id }),
-        ...(plant.source === 'trefle' && { trefle_id: plant.id }),
+        // Handle merged plants with both IDs
+        ...(plant.perenual_id && { perenual_id: plant.perenual_id }),
+        ...(plant.trefle_id && { trefle_id: plant.trefle_id }),
+        ...(plant.source === 'perenual' && !plant.perenual_id && { perenual_id: plant.id }),
+        ...(plant.source === 'trefle' && !plant.trefle_id && { trefle_id: plant.id }),
 
         slug: plant.slug,
         scientific_name: plant.scientific_name,
@@ -130,10 +152,8 @@ async function addToCollection(plant: PlantSearchResult, button: HTMLButtonEleme
         author: plant.author,
         synonyms: plant.synonyms || [],
 
-        // Store source in metadata for tracking
-        metadata: {
-            source: plant.source
-        }
+        // Store source or merged metadata for tracking
+        metadata: plant.metadata || { source: plant.source }
     };
 
     console.log('Adding to collection:', payload);
@@ -161,6 +181,213 @@ async function addToCollection(plant: PlantSearchResult, button: HTMLButtonEleme
         button.textContent = 'Error - Retry?';
         button.disabled = false;
     }
+}
+
+async function searchOtherApi(scientificName: string, apiSource: 'trefle' | 'perenual'): Promise<PlantSearchResult | null> {
+    const endpoint = apiSource === 'trefle' ? '/api/trefle' : '/api/perenual';
+    const response = await fetch(`${endpoint}?q=${encodeURIComponent(scientificName)}`);
+    const data = await response.json();
+
+    if (!data.data || data.data.length === 0) return null;
+
+    // Find best match
+    const exactMatch = data.data.find((p: PlantSearchResult) =>
+        p.scientific_name.toLowerCase() === scientificName.toLowerCase()
+    );
+    if (exactMatch) return exactMatch;
+
+    const genusName = scientificName.split(' ')[0].toLowerCase();
+    const genusMatch = data.data.find((p: PlantSearchResult) =>
+        p.scientific_name.toLowerCase().startsWith(genusName)
+    );
+
+    return genusMatch || data.data[0];
+}
+
+function smartMergePlants(plant1: PlantSearchResult, plant2: PlantSearchResult): ComparisonResult {
+    const merged: any = { ...plant1 };
+    const differences = new Set<keyof PlantSearchResult>();
+
+    const textFields: (keyof PlantSearchResult)[] = [
+        'scientific_name', 'common_name', 'family', 'family_common_name',
+        'genus', 'bibliography', 'author'
+    ];
+
+    textFields.forEach(field => {
+        const val1 = plant1[field];
+        const val2 = plant2[field];
+
+        if (val1 !== val2) differences.add(field);
+
+        // Prefer non-null
+        if (!val1 && val2) {
+            merged[field] = val2;
+        } else if (val1 && val2) {
+            // Prefer longer text
+            merged[field] = String(val2).length > String(val1).length ? val2 : val1;
+        }
+    });
+
+    // Image: prefer whichever has one
+    if (plant1.image_url !== plant2.image_url) {
+        differences.add('image_url');
+        merged.image_url = plant2.image_url || plant1.image_url;
+    }
+
+    // Synonyms: merge arrays
+    if (plant1.synonyms || plant2.synonyms) {
+        const combined = [...new Set([...(plant1.synonyms || []), ...(plant2.synonyms || [])])];
+        merged.synonyms = combined.length > 0 ? combined : null;
+        if (JSON.stringify(plant1.synonyms) !== JSON.stringify(plant2.synonyms)) {
+            differences.add('synonyms');
+        }
+    }
+
+    // Store both IDs
+    merged.trefle_id = plant1.source === 'trefle' ? plant1.id : plant2.source === 'trefle' ? plant2.id : null;
+    merged.perenual_id = plant1.source === 'perenual' ? plant1.id : plant2.source === 'perenual' ? plant2.id : null;
+    merged.metadata = { merged_from: [plant1.source, plant2.source] };
+
+    return { original: plant1, matched: plant2, merged, differences };
+}
+
+async function openComparisonModal(originalPlant: PlantSearchResult, targetApi: 'trefle' | 'perenual') {
+    const modal = document.getElementById('comparison-modal') as HTMLDialogElement;
+    if (!modal) return;
+
+    showModalLoading(modal, targetApi);
+    modal.showModal();
+
+    try {
+        const matchedPlant = await searchOtherApi(originalPlant.scientific_name, targetApi);
+
+        if (!matchedPlant) {
+            showModalError(modal, `No matching plant found in ${targetApi}`);
+            return;
+        }
+
+        const comparisonResult = smartMergePlants(originalPlant, matchedPlant);
+        displayComparison(modal, comparisonResult);
+
+    } catch (error) {
+        showModalError(modal, `Failed to search ${targetApi}: ${(error as Error).message}`);
+    }
+}
+
+function displayComparison(modal: HTMLDialogElement, result: ComparisonResult) {
+    const loading = modal.querySelector('.comparison-loading') as HTMLElement;
+    const content = modal.querySelector('.comparison-content') as HTMLElement;
+    loading.style.display = 'none';
+    content.style.display = 'block';
+
+    // Update headers
+    const col1 = modal.querySelector('.source-col-1') as HTMLElement;
+    const col2 = modal.querySelector('.source-col-2') as HTMLElement;
+    col1.textContent = result.original.source?.toUpperCase() || 'SOURCE 1';
+    col2.textContent = result.matched?.source?.toUpperCase() || 'SOURCE 2';
+
+    // Populate table
+    const tbody = modal.querySelector('#comparison-rows') as HTMLElement;
+    tbody.innerHTML = '';
+
+    const fields: (keyof PlantSearchResult)[] = [
+        'scientific_name', 'common_name', 'family', 'genus', 'image_url', 'author', 'bibliography'
+    ];
+
+    fields.forEach(field => {
+        const row = createComparisonRow(
+            field,
+            result.original[field],
+            result.matched?.[field],
+            result.merged[field],
+            result.differences.has(field)
+        );
+        tbody.appendChild(row);
+    });
+
+    // Preview
+    displayPreview(modal, result.merged);
+
+    // Wire buttons
+    const saveBtn = modal.querySelector('.save-merged-btn') as HTMLButtonElement;
+    saveBtn.onclick = () => {
+        addToCollection(result.merged, saveBtn);
+        modal.close();
+    };
+
+    modal.querySelectorAll('.cancel-btn, .modal-close').forEach(btn => {
+        (btn as HTMLButtonElement).onclick = () => modal.close();
+    });
+}
+
+function createComparisonRow(fieldName: keyof PlantSearchResult, val1: any, val2: any, merged: any, isDifferent: boolean): HTMLElement {
+    const template = document.getElementById('comparison-row-template') as HTMLTemplateElement;
+    const row = template.content.cloneNode(true) as DocumentFragment;
+    const tr = row.querySelector('tr') as HTMLElement;
+
+    if (isDifferent) tr.classList.add('different');
+
+    const fieldLabel = row.querySelector('.field-name') as HTMLElement;
+    fieldLabel.textContent = String(fieldName).replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
+
+    const val1El = row.querySelector('.value-1') as HTMLElement;
+    const val2El = row.querySelector('.value-2') as HTMLElement;
+    const mergedEl = row.querySelector('.merged-value') as HTMLElement;
+
+    const format = (v: any) => {
+        if (v === null || v === undefined) return '—';
+        if (Array.isArray(v)) return v.join(', ') || '—';
+        if (fieldName === 'image_url') return v ? '✓ Yes' : '—';
+        return String(v);
+    };
+
+    val1El.textContent = format(val1);
+    val2El.textContent = format(val2);
+    mergedEl.textContent = format(merged);
+
+    return tr;
+}
+
+function displayPreview(modal: HTMLDialogElement, merged: PlantSearchResult) {
+    const preview = modal.querySelector('.preview-card') as HTMLElement;
+    preview.innerHTML = `
+        ${merged.image_url
+            ? `<img src="${merged.image_url}" alt="${merged.scientific_name}" style="width:100px;height:100px;object-fit:cover;border-radius:6px;">`
+            : '<div style="width:100px;height:100px;background:#e0e0e0;border-radius:6px;display:flex;align-items:center;justify-content:center;color:#888;">No image</div>'}
+        <div>
+            <h4 style="margin:0 0 0.5rem;font-style:italic;">${merged.scientific_name}</h4>
+            <p style="margin:0;color:#666;">${merged.common_name || 'No common name'}</p>
+        </div>
+    `;
+    preview.style.display = 'flex';
+    preview.style.gap = '1rem';
+    preview.style.padding = '1rem';
+    preview.style.background = '#f5f7f5';
+    preview.style.borderRadius = '8px';
+}
+
+function showModalLoading(modal: HTMLDialogElement, apiName: string) {
+    const loading = modal.querySelector('.comparison-loading') as HTMLElement;
+    const content = modal.querySelector('.comparison-content') as HTMLElement;
+    const error = modal.querySelector('.comparison-error') as HTMLElement;
+
+    loading.style.display = 'block';
+    content.style.display = 'none';
+    error.style.display = 'none';
+
+    loading.querySelector('p')!.textContent = `Searching ${apiName}...`;
+}
+
+function showModalError(modal: HTMLDialogElement, message: string) {
+    const loading = modal.querySelector('.comparison-loading') as HTMLElement;
+    const content = modal.querySelector('.comparison-content') as HTMLElement;
+    const error = modal.querySelector('.comparison-error') as HTMLElement;
+
+    loading.style.display = 'none';
+    content.style.display = 'none';
+    error.style.display = 'block';
+
+    error.querySelector('.error-message')!.textContent = message;
 }
 
 // Wire up the search form
