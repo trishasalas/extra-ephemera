@@ -820,3 +820,90 @@ header p {
         margin-top: 0.5rem;
     }
 }
+
+/* Photo Upload Styles */
+.current-image-preview {
+    margin-bottom: 1rem;
+}
+
+.image-source-note {
+    font-size: 0.85rem;
+    color: #666;
+    margin-top: 0.5rem;
+}
+
+.upload-preview {
+    margin-top: 0.5rem;
+}
+
+.upload-status {
+    padding: 0.75rem;
+    border-radius: 6px;
+    margin: 0.5rem 0;
+    font-size: 0.9rem;
+}
+
+.upload-status.uploading {
+    background: #e3f2fd;
+    color: #1976d2;
+    border: 1px solid #90caf9;
+}
+
+.upload-status.success {
+    background: #e8f5e9;
+    color: #2e7d32;
+    border: 1px solid #81c784;
+}
+
+.upload-status.error {
+    background: #ffebee;
+    color: #c62828;
+    border: 1px solid #ef5350;
+}
+
+.form-divider {
+    display: flex;
+    align-items: center;
+    margin: 1.5rem 0;
+    text-align: center;
+}
+
+.form-divider::before,
+.form-divider::after {
+    content: '';
+    flex: 1;
+    border-bottom: 1px solid #ddd;
+}
+
+.form-divider span {
+    padding: 0 1rem;
+    color: #999;
+    font-size: 0.9rem;
+    font-weight: 500;
+}
+
+.help-text {
+    display: block;
+    margin-top: 0.25rem;
+    font-size: 0.85rem;
+    color: #666;
+}
+
+.form-group input[type="file"] {
+    padding: 0.5rem;
+    border: 2px dashed #ccc;
+    border-radius: 6px;
+    background: #fafafa;
+    cursor: pointer;
+}
+
+.form-group input[type="file"]:hover {
+    border-color: #2d5a27;
+    background: #f0f7f0;
+}
+
+.form-group input[type="file"]:focus {
+    outline: none;
+    border-color: #2d5a27;
+    box-shadow: 0 0 0 2px rgba(45, 90, 39, 0.1);
+}

@@ -248,10 +248,44 @@ function showEditForm() {
                         value="${plant.family_common_name || ''}">
                 </div>
 
+            </div>
+
+            <div class="form-section">
+                <h2>Plant Image</h2>
+
+                ${plant.image_url ? `
+                    <div class="current-image-preview">
+                        <img src="${plant.image_url}" alt="Current plant image" style="max-width: 300px; max-height: 300px; border-radius: 8px;">
+                        <p class="image-source-note">Current image</p>
+                    </div>
+                ` : ''}
+
+                <div class="form-group">
+                    <label for="photo_upload">Upload New Photo</label>
+                    <input
+                        type="file"
+                        id="photo_upload"
+                        name="photo_upload"
+                        accept="image/jpeg,image/jpg,image/png,image/webp,image/gif"
+                    >
+                    <small class="help-text">Upload your own photo (JPEG, PNG, WebP, or GIF, max 5MB). This will replace the current image.</small>
+                </div>
+
+                <div id="upload_preview" class="upload-preview" style="display: none;">
+                    <img id="preview_image" alt="Upload preview" style="max-width: 300px; max-height: 300px; border-radius: 8px; margin-top: 0.5rem;">
+                </div>
+
+                <div id="upload_status" class="upload-status"></div>
+
+                <div class="form-divider">
+                    <span>OR</span>
+                </div>
+
                 <div class="form-group">
                     <label for="image_url">Image URL</label>
                     <input type="url" id="image_url" name="image_url"
                         value="${plant.image_url || ''}">
+                    <small class="help-text">Enter an external image URL (e.g., from plant APIs)</small>
                 </div>
             </div>
 
@@ -430,6 +464,51 @@ function showEditForm() {
     if (editForm) {
         editForm.addEventListener('submit', handleSave);
     }
+
+    // Handle file input preview
+    const photoInput = document.getElementById('photo_upload') as HTMLInputElement;
+    const previewContainer = document.getElementById('upload_preview');
+    const previewImage = document.getElementById('preview_image') as HTMLImageElement;
+
+    if (photoInput && previewContainer && previewImage) {
+        photoInput.addEventListener('change', (e) => {
+            const file = (e.target as HTMLInputElement).files?.[0];
+            if (file) {
+                // Validate file type
+                const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp', 'image/gif'];
+                if (!allowedTypes.includes(file.type)) {
+                    alert('Invalid file type. Only JPEG, PNG, WebP, and GIF are allowed.');
+                    photoInput.value = '';
+                    previewContainer.style.display = 'none';
+                    return;
+                }
+
+                // Validate file size (5MB)
+                if (file.size > 5 * 1024 * 1024) {
+                    alert('File too large. Maximum size is 5MB.');
+                    photoInput.value = '';
+                    previewContainer.style.display = 'none';
+                    return;
+                }
+
+                // Show preview
+                const reader = new FileReader();
+                reader.onload = (event) => {
+                    previewImage.src = event.target?.result as string;
+                    previewContainer.style.display = 'block';
+                };
+                reader.readAsDataURL(file);
+
+                // Clear the URL input if file is selected
+                const urlInput = document.getElementById('image_url') as HTMLInputElement;
+                if (urlInput) {
+                    urlInput.value = '';
+                }
+            } else {
+                previewContainer.style.display = 'none';
+            }
+        });
+    }
 }
 
 async function handleSave(e: Event) {
@@ -441,6 +520,7 @@ async function handleSave(e: Event) {
     const formData = new FormData(form);
     const message = document.getElementById('form-message');
     const saveBtn = form.querySelector('.save-btn') as HTMLButtonElement;
+    const statusEl = document.getElementById('upload_status');
 
     if (!message || !saveBtn) return;
 
@@ -448,6 +528,51 @@ async function handleSave(e: Event) {
     saveBtn.textContent = 'Saving...';
     message.textContent = '';
     message.className = 'form-message';
+
+    // Handle photo upload if file is selected
+    let finalImageUrl = formData.get('image_url') as string | null;
+    const photoFile = formData.get('photo_upload') as File;
+
+    if (photoFile && photoFile.size > 0) {
+        // Upload photo to Netlify Blobs
+        if (statusEl) {
+            statusEl.textContent = 'Uploading photo...';
+            statusEl.className = 'upload-status uploading';
+        }
+
+        try {
+            const uploadFormData = new FormData();
+            uploadFormData.append('photo', photoFile);
+            uploadFormData.append('plantId', currentPlant.id.toString());
+
+            const uploadResponse = await fetch('/api/plants/upload-photo', {
+                method: 'POST',
+                body: uploadFormData
+            });
+
+            const uploadResult = await uploadResponse.json();
+
+            if (uploadResponse.ok && uploadResult.success) {
+                finalImageUrl = uploadResult.blobUrl;
+                if (statusEl) {
+                    statusEl.textContent = 'Photo uploaded successfully!';
+                    statusEl.className = 'upload-status success';
+                }
+            } else {
+                throw new Error(uploadResult.error || 'Failed to upload photo');
+            }
+        } catch (uploadError: any) {
+            console.error('Error uploading photo:', uploadError);
+            message.textContent = `Photo upload failed: ${uploadError.message}`;
+            message.classList.add('error');
+            saveBtn.disabled = false;
+            saveBtn.textContent = 'Save Changes';
+            if (statusEl) {
+                statusEl.textContent = '';
+            }
+            return; // Don't proceed with plant update if upload fails
+        }
+    }
 
     // Build metadata
     const metadata: any = {};
@@ -506,7 +631,7 @@ async function handleSave(e: Event) {
         genus: formData.get('genus') || null,
         family: formData.get('family') || null,
         family_common_name: formData.get('family_common_name') || null,
-        image_url: formData.get('image_url') || null,
+        image_url: finalImageUrl,
         author: formData.get('author') || null,
         bibliography: formData.get('bibliography') || null,
         year: formData.get('year') ? parseInt(formData.get('year')) : null,

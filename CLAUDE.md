@@ -46,6 +46,7 @@ netlify/
 │   ├── get-plants.mjs          # GET /api/plants/list
 │   ├── get-plant.mjs           # GET /api/plants/:id
 │   ├── update-plant.mjs        # PUT /api/plants/:id
+│   ├── upload-photo.mjs        # POST /api/plants/upload-photo
 │   ├── call-trefle.mjs         # GET /api/trefle?q=...
 │   ├── call-perenual.mjs       # GET /api/perenual?q=...
 │   └── call-perenual-care.mjs  # GET /api/perenual-care?species_id=...
@@ -104,6 +105,16 @@ Four main tables (see `database/schema.sql` for full schema):
 - `DATABASE_URL` env var automatically set by Netlify DB
 - Connection via `@neondatabase/serverless` (HTTP-based, not TCP)
 - Helper function in `netlify/utils/db.mjs`
+
+**Netlify Blobs Storage** (photo uploads):
+- Token: Automatically configured on paid Netlify plans
+- Package: `@netlify/blobs` for serverless file storage
+- Proxied through `/api/plants/upload-photo` Netlify function
+- Store name: `plant-photos` with strong consistency
+- File naming: `plant-{plantId}-{timestamp}.{extension}` for uniqueness
+- Custom serve pattern: `{origin}/api/photos/{blobKey}`
+- Validates file types (JPEG, PNG, WebP, GIF) and size (5MB max)
+- Stores metadata (plantId, originalName, contentType, uploadedAt)
 
 ### Function-Based Code Style
 
@@ -224,6 +235,52 @@ Perenual care guide data is mapped to existing care fields:
 
 This ensures one source of truth for all care information.
 
+### File Upload Pattern
+
+**Photo Upload with Netlify Blobs:**
+The plant detail page supports uploading custom photos stored in Netlify Blobs:
+- **Two-endpoint approach**: Upload endpoint separate from update endpoint
+- **Upload-before-update**: Photo uploads first, then plant record updates with blob URL
+- **Client-side preview**: FileReader shows preview before upload
+- **Validation**: File type and size validated both client-side (UX) and server-side (security)
+- **Status messages**: Color-coded feedback (uploading=blue, success=green, error=red)
+- **Error handling**: Upload failures abort plant update to ensure data consistency
+
+**Implementation Flow:**
+1. User selects file → Client validates → Shows preview (FileReader)
+2. User clicks "Save Changes" → Creates FormData with photo + plantId
+3. POSTs to `/api/plants/upload-photo` → Uploads to Netlify Blobs
+4. Gets blob URL from response → Uses as `finalImageUrl`
+5. Updates plant via `/api/plants/update` → Stores blob URL in `image_url` field
+6. Displays success message → Page refreshes with new image
+
+**Netlify Blobs Setup:**
+```javascript
+import { getStore } from '@netlify/blobs';
+
+const photoStore = getStore({
+    name: 'plant-photos',
+    consistency: 'strong'  // Immediate availability
+});
+
+// Generate unique key
+const blobKey = `plant-${plantId}-${timestamp}.${extension}`;
+
+// Upload with metadata
+await photoStore.set(blobKey, file, {
+    metadata: {
+        plantId: plantId,
+        originalName: file.name,
+        contentType: file.type,
+        uploadedAt: new Date().toISOString()
+    }
+});
+
+// Return custom serve URL
+const origin = new URL(request.url).origin;
+const blobUrl = `${origin}/api/photos/${blobKey}`;
+```
+
 ## Current Features
 
 1. **Search Plants** (`/` - index.astro):
@@ -251,6 +308,12 @@ This ensures one source of truth for all care information.
    - Care section with icons (☀️ Light, 💧 Water, ✂️ Pruning)
    - Edit mode for updating plant information
    - Care data automatically populated from Perenual when available
+   - **Photo Upload**: Upload custom plant photos from device
+     - File selection with live preview using FileReader
+     - Client + server validation (type, size)
+     - Upload to Netlify Blobs storage before saving
+     - Replaces image_url field completely
+     - Fallback to URL input for external images
 
 ## Database Setup Process
 
