@@ -1,5 +1,6 @@
 ---
 import '../assets/style.css'
+const { pageTitle } = Astro.props;
 ---
 
 <!doctype html>
@@ -9,13 +10,14 @@ import '../assets/style.css'
 		<meta name="viewport" content="width=device-width" />
 		<link rel="icon" type="image/svg+xml" href="/favicon.svg" />
 		<meta name="generator" content={Astro.generator} />
-		<title>Extra Ephemera | Mosslight Nook</title>
+		<title>{pageTitle}</title>
 	</head>
 	<body>
 		<nav class="main-nav">
 			<a href="/" class="nav-logo">🌱 Extra Ephemera</a>
 			<ul class="nav-links">
 				<li><a href="/collection">Collection</a></li>
+				<li><a href="/stories">Stories</a></li>
 				<li><a href="/">Search</a></li>
 				<li><a href="/add">Add Cultivar</a></li>
 			</ul>

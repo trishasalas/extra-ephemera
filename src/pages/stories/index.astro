@@ -1,0 +1,125 @@
+---
+import { getCollection } from 'astro:content';
+import Layout from '../../layouts/Layout.astro';
+
+// Fetch all stories and sort by date (newest first)
+const allStories = await getCollection('stories');
+const stories = allStories.sort((a, b) =>
+    b.data.date.valueOf() - a.data.date.valueOf()
+);
+---
+
+<Layout pageTitle="The Mosslight Nook Stories">
+    <div class="container">
+        <h1>Stories from the Nook</h1>
+        <p class="intro">Tales of plants, their keepers, and the magic that grows between them.</p>
+
+        <div class="stories-list">
+            {stories.map((story) => (
+                <article class="story-card">
+                    <h2>
+                        <a href={`/stories/${story.id}`}>{story.data.title}</a>
+                    </h2>
+
+                    {story.data.excerpt && (
+                        <p class="excerpt">{story.data.excerpt}</p>
+                    )}
+
+                    <div class="meta">
+                        <time datetime={story.data.date.toISOString()}>
+                            {story.data.date.toLocaleDateString()}
+                        </time>
+
+                        {story.data.authors && story.data.authors.length > 0 && (
+                            <span class="authors">by {story.data.authors.join(', ')}</span>
+                        )}
+                    </div>
+
+                    {story.data.tags && story.data.tags.length > 0 && (
+                        <div class="tags">
+                            {story.data.tags.map((tag) => (
+                                <span class="tag">{tag}</span>
+                            ))}
+                        </div>
+                    )}
+                </article>
+            ))}
+        </div>
+    </div>
+</Layout>
+
+<style>
+    .container {
+        max-width: 800px;
+        margin: 0 auto;
+        padding: 2rem;
+    }
+
+    .intro {
+        color: #666;
+        margin-bottom: 2rem;
+        font-size: 1.1rem;
+    }
+
+    .stories-list {
+        display: flex;
+        flex-direction: column;
+        gap: 2rem;
+    }
+
+    .story-card {
+        border: 1px solid #e0e0e0;
+        border-radius: 8px;
+        padding: 1.5rem;
+        background: white;
+        transition: box-shadow 0.2s;
+    }
+
+    .story-card:hover {
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+    }
+
+    .story-card h2 {
+        margin: 0 0 0.5rem;
+        font-size: 1.5rem;
+    }
+
+    .story-card h2 a {
+        color: #2d5a27;
+        text-decoration: none;
+    }
+
+    .story-card h2 a:hover {
+        text-decoration: underline;
+    }
+
+    .excerpt {
+        color: #666;
+        font-style: italic;
+        margin: 0.5rem 0;
+        line-height: 1.5;
+    }
+
+    .meta {
+        display: flex;
+        gap: 1rem;
+        font-size: 0.9rem;
+        color: #888;
+        margin-top: 1rem;
+    }
+
+    .tags {
+        display: flex;
+        gap: 0.5rem;
+        flex-wrap: wrap;
+        margin-top: 1rem;
+    }
+
+    .tag {
+        background: #f0f0f0;
+        padding: 0.25rem 0.75rem;
+        border-radius: 4px;
+        font-size: 0.85rem;
+        color: #555;
+    }
+</style>
