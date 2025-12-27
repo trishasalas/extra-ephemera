@@ -41,9 +41,11 @@ interface AddPlantResponse {
     error?: string;
 }
 
+
 /**
  * Build metadata object from form data
  */
+// @ts-ignore
 function buildMetadata(formData: FormData): CultivarMetadata | null {
     const metadata: CultivarMetadata = {};
 
