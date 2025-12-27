@@ -52,18 +52,19 @@ export default async (request, context) => {
         }
 
         // Initialize blob store with strong consistency
-        const photoStore = getStore({
-            name: 'plant-photos',
-            consistency: 'strong'
-        });
+        const photoStore = getStore('plant-photos');
 
         // Generate unique key: plant-{id}-{timestamp}.{extension}
         const timestamp = Date.now();
         const extension = file.name.split('.').pop() || 'jpg';
         const blobKey = `plant-${plantId}-${timestamp}.${extension}`;
 
+        // Convert File to ArrayBuffer for blob store
+        const arrayBuffer = await file.arrayBuffer();
+
         // Upload to blob store
-        await photoStore.set(blobKey, file, {
+        console.log(`Uploading blob: ${blobKey}, size: ${arrayBuffer.byteLength} bytes`);
+        await photoStore.set(blobKey, arrayBuffer, {
             metadata: {
                 plantId: plantId,
                 originalName: file.name,
@@ -71,11 +72,14 @@ export default async (request, context) => {
                 uploadedAt: new Date().toISOString()
             }
         });
+        console.log(`Successfully uploaded blob: ${blobKey}`);
 
         // Generate URL that points to our serve function
-        // Works both locally (netlify dev) and in production
-        const origin = new URL(request.url).origin;
-        const blobUrl = `${origin}/api/photos/${blobKey}`;
+        // Use production URL from Netlify env var, fallback to request origin for local dev
+        const productionUrl = process.env.URL || 'https://extra-ephemera.netlify.app';
+        const blobUrl = `${productionUrl}/api/photos/${blobKey}`;
+
+        console.log(`Generated blob URL: ${blobUrl}`);
 
         return new Response(JSON.stringify({
             success: true,

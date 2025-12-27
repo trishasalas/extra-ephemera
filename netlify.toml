@@ -7,6 +7,6 @@
 
 # Enable Netlify Blobs
 [dev]
-  # Uncomment the next line to use production blobs during local dev
-  # Note: requires `netlify link` and authenticated session
+  # Use production blobs during local dev (requires `netlify link` and authenticated session)
+  # This ensures blobs uploaded locally go to production storage
   blobsContext = "deploy"

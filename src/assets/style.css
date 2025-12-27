@@ -221,24 +221,28 @@ header p {
     color: #888;
 }
 
-.plant-card .add-btn {
+.compare-btn,
+.add-btn {
     width: 100%;
     margin-top: 1rem;
     padding: 0.6rem 1rem;
     background: #2d5a27;
-    color: white;
-    border: none;
+    color: #fff;
+    border: #fff;
     border-radius: 6px;
     cursor: pointer;
     font-size: 0.9rem;
     transition: background 0.2s;
 }
 
-.plant-card .add-btn:hover {
-    background: #1e3d1a;
+.compare-btn:hover,
+.add-btn:hover {
+    background: #fff;
+    border: 1px solid #2d5a27;
+    color: #2d5a27;
 }
 
-.plant-card .add-btn.added {
+.add-btn.added {
     background: #666;
     cursor: default;
 }
@@ -622,26 +626,9 @@ header p {
 /* Compare Button */
 .card-actions {
     display: flex;
-    flex-direction: column;
+    /*flex-direction: column;*/
     gap: 0.5rem;
     margin-top: 1rem;
-}
-
-.compare-btn {
-    width: 100%;
-    padding: 0.6rem 1rem;
-    background: white;
-    color: #2d5a27;
-    border: 2px solid #2d5a27;
-    border-radius: 6px;
-    cursor: pointer;
-    font-size: 0.9rem;
-    font-weight: 500;
-}
-
-.compare-btn:hover {
-    background: #2d5a27;
-    color: white;
 }
 
 /* Modal */

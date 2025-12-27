@@ -33,7 +33,7 @@ interface ComparisonResult {
     differences: Set<keyof PlantSearchResult>;
 }
 
-async function searchPlants(query: string = 'alocasia', apiSource: 'trefle' | 'perenual' = 'trefle') {
+async function searchPlants(query: string = '', apiSource: 'trefle' | 'perenual' = 'trefle') {
     const resultsContainer = document.getElementById('results');
     if (!resultsContainer) return;
 
@@ -121,7 +121,7 @@ function createPlantCard(plant: PlantSearchResult): HTMLElement {
     const compareBtn = card.querySelector('.compare-btn') as HTMLButtonElement;
     const currentSource = plant.source || 'trefle';
     const otherSource = currentSource === 'trefle' ? 'perenual' : 'trefle';
-    compareBtn.textContent = `Compare with ${otherSource.charAt(0).toUpperCase() + otherSource.slice(1)}`;
+    compareBtn.textContent = `Compare`;
 
     compareBtn.addEventListener('click', () => {
         openComparisonModal(plant, otherSource);

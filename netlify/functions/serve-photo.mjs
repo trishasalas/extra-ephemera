@@ -6,29 +6,32 @@ export default async (request, context) => {
     const pathParts = url.pathname.split('/');
     // Path will be /api/photos/{blobKey}
     const blobKey = pathParts[pathParts.length - 1];
+    console.log(blobKey)
 
     if (!blobKey) {
         return new Response('Photo key required', { status: 400 });
     }
 
     try {
-        const photoStore = getStore({
-            name: 'plant-photos',
-            consistency: 'strong'
-        });
+        const photoStore = getStore('plant-photos');
 
-        // Get the blob with metadata
-        const blob = await photoStore.getWithMetadata(blobKey, { type: 'blob' });
+        console.log(`Attempting to retrieve blob: ${blobKey}`);
 
-        if (!blob || !blob.data) {
+        // Get the blob with metadata as arrayBuffer
+        const blobData = await photoStore.getWithMetadata(blobKey, { type: 'arrayBuffer' });
+
+        if (!blobData || !blobData.data) {
+            console.log(`Blob not found: ${blobKey}`);
             return new Response('Photo not found', { status: 404 });
         }
 
-        // Get content type from metadata, fallback to octet-stream
-        const contentType = blob.metadata?.contentType || 'application/octet-stream';
+        console.log(`Successfully retrieved blob: ${blobKey}, content-type: ${blobData.metadata?.contentType}`);
+
+        // Get content type from metadata, fallback to jpeg
+        const contentType = blobData.metadata?.contentType || 'image/jpeg';
 
         // Return the image with appropriate headers
-        return new Response(blob.data, {
+        return new Response(blobData.data, {
             status: 200,
             headers: {
                 'Content-Type': contentType,
