@@ -325,6 +325,47 @@ First-time setup requires:
 
 See `database/README.md` for detailed instructions.
 
+## Session Logs & Documentation
+
+**Session logs are created after every significant commit** to document the development process for future reference and writing.
+
+### Location and Format
+- **Directory**: `docs/session-logs/`
+- **Naming**: `YYYY-MM-DD-feature-name.md` (e.g., `2025-12-27-stories-feature.md`)
+- **Format**: Markdown files with structured documentation
+
+### When to Create Session Logs
+Create a session log after commits that include:
+- New features or major functionality
+- Significant refactoring or code reorganization
+- Bug fixes with notable troubleshooting
+- Architecture changes or pattern updates
+- Database schema modifications
+- Integration of new APIs or services
+
+### Session Log Structure
+Each session log should include:
+
+1. **Header** - Date and focus area
+2. **Overview** - Brief summary of what was accomplished
+3. **Implementation Details** - Key code changes with examples
+4. **File Structure** - Directories and files created/modified
+5. **Troubleshooting Journey** - Errors encountered and how they were resolved
+6. **Testing** - Verification steps and results
+7. **Files Modified** - Complete list of affected files
+
+### Purpose
+Session logs serve multiple purposes:
+- **Learning Reference** - Document the problem-solving process, not just the solution
+- **Project History** - Track evolution of features and architecture decisions
+- **Writing Material** - Provide detailed notes for blog posts, documentation, or case studies
+- **Onboarding** - Help future contributors understand why decisions were made
+
+### Example Session Log Topics
+- `2025-12-27-typescript-refactoring.md` - Extracting inline JS to typed modules
+- `2025-12-27-blob-storage-fixes.md` - Configuring Netlify Blobs for local dev
+- `2025-12-27-stories-feature.md` - Implementing Astro content collections
+
 ## Important Notes
 
 - The project started as an Astro basics template and has been customized
