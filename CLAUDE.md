@@ -106,15 +106,14 @@ Four main tables (see `database/schema.sql` for full schema):
 - Connection via `@neondatabase/serverless` (HTTP-based, not TCP)
 - Helper function in `netlify/utils/db.mjs`
 
-**Netlify Blobs Storage** (photo uploads):
-- Token: Automatically configured on paid Netlify plans
-- Package: `@netlify/blobs` for serverless file storage
+**Cloudinary** (photo uploads):
+- Credentials stored in `.env` as `CLOUDINARY_CLOUD_NAME`, `CLOUDINARY_API_KEY`, `CLOUDINARY_API_SECRET`
+- Package: `cloudinary` (v2) for image upload and CDN delivery
 - Proxied through `/api/plants/upload-photo` Netlify function
-- Store name: `plant-photos` with strong consistency
-- File naming: `plant-{plantId}-{timestamp}.{extension}` for uniqueness
-- Custom serve pattern: `{origin}/api/photos/{blobKey}`
+- Folder structure: `mosslight-nook/{slug}` for organized storage
+- Naming priority: `slug` → slugified `common_name` → slugified `scientific_name` → `plant-{id}`
 - Validates file types (JPEG, PNG, WebP, GIF) and size (5MB max)
-- Stores metadata (plantId, originalName, contentType, uploadedAt)
+- Images served directly from Cloudinary CDN (no serve endpoint needed)
 
 ### Function-Based Code Style
 
@@ -208,6 +207,9 @@ function createCard(data) {
 VITE_TREFLE_API=your-trefle-token
 VITE_PERENUAL_API=sk-your-perenual-key
 DATABASE_URL=postgresql://... (auto-injected by Netlify)
+CLOUDINARY_CLOUD_NAME=your-cloud-name
+CLOUDINARY_API_KEY=your-api-key
+CLOUDINARY_API_SECRET=your-api-secret
 PLANTNET_API=your-plantnet-key (optional, not currently used)
 ```
 
@@ -237,48 +239,51 @@ This ensures one source of truth for all care information.
 
 ### File Upload Pattern
 
-**Photo Upload with Netlify Blobs:**
-The plant detail page supports uploading custom photos stored in Netlify Blobs:
+**Photo Upload with Cloudinary:**
+The plant detail page supports uploading custom photos stored in Cloudinary:
 - **Two-endpoint approach**: Upload endpoint separate from update endpoint
-- **Upload-before-update**: Photo uploads first, then plant record updates with blob URL
+- **Upload-before-update**: Photo uploads first, then plant record updates with Cloudinary URL
 - **Client-side preview**: FileReader shows preview before upload
 - **Validation**: File type and size validated both client-side (UX) and server-side (security)
 - **Status messages**: Color-coded feedback (uploading=blue, success=green, error=red)
 - **Error handling**: Upload failures abort plant update to ensure data consistency
+- **Slug-based naming**: Images named by plant slug for easy identification in Cloudinary dashboard
 
 **Implementation Flow:**
 1. User selects file → Client validates → Shows preview (FileReader)
-2. User clicks "Save Changes" → Creates FormData with photo + plantId
-3. POSTs to `/api/plants/upload-photo` → Uploads to Netlify Blobs
-4. Gets blob URL from response → Uses as `finalImageUrl`
-5. Updates plant via `/api/plants/update` → Stores blob URL in `image_url` field
+2. User clicks "Save Changes" → Creates FormData with photo + plantId + slug/commonName/scientificName
+3. POSTs to `/api/plants/upload-photo` → Uploads to Cloudinary
+4. Gets Cloudinary URL from response → Uses as `finalImageUrl`
+5. Updates plant via `/api/plants/update` → Stores Cloudinary URL in `image_url` field
 6. Displays success message → Page refreshes with new image
 
-**Netlify Blobs Setup:**
+**Cloudinary Upload Setup:**
 ```javascript
-import { getStore } from '@netlify/blobs';
+import { v2 as cloudinary } from 'cloudinary';
 
-const photoStore = getStore({
-    name: 'plant-photos',
-    consistency: 'strong'  // Immediate availability
+cloudinary.config({
+    cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
+    api_key: process.env.CLOUDINARY_API_KEY,
+    api_secret: process.env.CLOUDINARY_API_SECRET,
 });
 
-// Generate unique key
-const blobKey = `plant-${plantId}-${timestamp}.${extension}`;
+// Generate slug-based public_id
+const imageSlug = slug || generateSlug(commonName) || generateSlug(scientificName) || `plant-${plantId}`;
+const publicId = `mosslight-nook/${imageSlug}`;
 
-// Upload with metadata
-await photoStore.set(blobKey, file, {
-    metadata: {
-        plantId: plantId,
-        originalName: file.name,
-        contentType: file.type,
-        uploadedAt: new Date().toISOString()
-    }
+// Convert file to base64 data URL
+const base64 = Buffer.from(arrayBuffer).toString('base64');
+const dataUrl = `data:${file.type};base64,${base64}`;
+
+// Upload to Cloudinary
+const result = await cloudinary.uploader.upload(dataUrl, {
+    public_id: publicId,
+    overwrite: true,  // Replace if same slug uploaded again
+    resource_type: 'image',
 });
 
-// Return custom serve URL
-const origin = new URL(request.url).origin;
-const blobUrl = `${origin}/api/photos/${blobKey}`;
+// Return Cloudinary CDN URL
+return { success: true, imageUrl: result.secure_url };
 ```
 
 ## Current Features
@@ -311,7 +316,7 @@ const blobUrl = `${origin}/api/photos/${blobKey}`;
    - **Photo Upload**: Upload custom plant photos from device
      - File selection with live preview using FileReader
      - Client + server validation (type, size)
-     - Upload to Netlify Blobs storage before saving
+     - Upload to Cloudinary with slug-based naming
      - Replaces image_url field completely
      - Fallback to URL input for external images
 

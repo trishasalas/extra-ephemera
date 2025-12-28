@@ -69,8 +69,9 @@ interface UpdatePlantPayload {
 
 interface UploadPhotoResponse {
     success: boolean;
-    blobUrl: string;
-    blobKey: string;
+    imageUrl: string;
+    publicId: string;
+    blobUrl: string;  // Kept for backwards compatibility
     error?: string;
 }
 
@@ -637,7 +638,7 @@ async function handleSave(e: Event): Promise<void> {
     const photoFile = formData.get('photo_upload') as File | null;
 
     if (photoFile && photoFile.size > 0) {
-        // Upload photo to Netlify Blobs
+        // Upload photo to Cloudinary
         if (statusEl) {
             statusEl.textContent = 'Uploading photo...';
             statusEl.className = 'upload-status uploading';
@@ -647,6 +648,14 @@ async function handleSave(e: Event): Promise<void> {
             const uploadFormData = new FormData();
             uploadFormData.append('photo', photoFile);
             uploadFormData.append('plantId', currentPlant.id.toString());
+            // Include naming info for Cloudinary public_id
+            if (currentPlant.slug) {
+                uploadFormData.append('slug', currentPlant.slug);
+            }
+            if (currentPlant.common_name) {
+                uploadFormData.append('commonName', currentPlant.common_name);
+            }
+            uploadFormData.append('scientificName', currentPlant.scientific_name);
 
             const uploadResponse = await fetch('/api/plants/upload-photo', {
                 method: 'POST',
@@ -656,7 +665,7 @@ async function handleSave(e: Event): Promise<void> {
             const uploadResult: UploadPhotoResponse = await uploadResponse.json();
 
             if (uploadResponse.ok && uploadResult.success) {
-                finalImageUrl = uploadResult.blobUrl;
+                finalImageUrl = uploadResult.imageUrl;
                 if (statusEl) {
                     statusEl.textContent = 'Photo uploaded successfully!';
                     statusEl.className = 'upload-status success';

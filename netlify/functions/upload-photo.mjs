@@ -1,4 +1,22 @@
-import { getStore } from '@netlify/blobs';
+import { v2 as cloudinary } from 'cloudinary';
+
+// Configure Cloudinary from environment variables
+cloudinary.config({
+    cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
+    api_key: process.env.CLOUDINARY_API_KEY,
+    api_secret: process.env.CLOUDINARY_API_SECRET,
+});
+
+/**
+ * Generate a URL-safe slug from text
+ */
+function generateSlug(text) {
+    if (!text) return null;
+    return text
+        .toLowerCase()
+        .replace(/[^a-z0-9]+/g, '-')
+        .replace(/^-|-$/g, '');
+}
 
 export default async (request, context) => {
     // Only allow POST with multipart/form-data
@@ -13,6 +31,9 @@ export default async (request, context) => {
         const formData = await request.formData();
         const file = formData.get('photo');
         const plantId = formData.get('plantId');
+        const slug = formData.get('slug');
+        const commonName = formData.get('commonName');
+        const scientificName = formData.get('scientificName');
 
         // Validation
         if (!file || !(file instanceof File)) {
@@ -51,41 +72,48 @@ export default async (request, context) => {
             });
         }
 
-        // Initialize blob store with strong consistency
-        const photoStore = getStore('plant-photos');
+        // Determine the public_id for Cloudinary
+        // Priority: slug > generated from commonName > generated from scientificName > plantId
+        const imageSlug = slug
+            || generateSlug(commonName)
+            || generateSlug(scientificName)
+            || `plant-${plantId}`;
 
-        // Generate unique key: plant-{id}-{timestamp}.{extension}
-        const timestamp = Date.now();
-        const extension = file.name.split('.').pop() || 'jpg';
-        const blobKey = `plant-${plantId}-${timestamp}.${extension}`;
+        const publicId = `mosslight-nook/${imageSlug}`;
 
-        // Convert File to ArrayBuffer for blob store
+        // Convert File to base64 data URL for Cloudinary upload
         const arrayBuffer = await file.arrayBuffer();
+        const base64 = Buffer.from(arrayBuffer).toString('base64');
+        const dataUrl = `data:${file.type};base64,${base64}`;
 
-        // Upload to blob store
-        console.log(`Uploading blob: ${blobKey}, size: ${arrayBuffer.byteLength} bytes`);
-        await photoStore.set(blobKey, arrayBuffer, {
-            metadata: {
-                plantId: plantId,
-                originalName: file.name,
-                contentType: file.type,
-                uploadedAt: new Date().toISOString()
-            }
+        // Upload to Cloudinary with compression and resizing
+        console.log(`Uploading to Cloudinary with public_id: ${publicId}`);
+        const result = await cloudinary.uploader.upload(dataUrl, {
+            public_id: publicId,
+            overwrite: true,  // Replace if same slug uploaded again
+            resource_type: 'image',
+            eager: [{
+                width: 1280,
+                crop: 'limit',      // Resize only if larger, maintain aspect ratio
+                quality: 'auto:good',
+                format: 'webp',
+            }],
+            eager_async: false,  // Wait for transformation to complete
         });
-        console.log(`Successfully uploaded blob: ${blobKey}`);
 
-        // Generate URL that points to our serve function
-        // Use production URL from Netlify env var, fallback to request origin for local dev
-        const productionUrl = process.env.URL || 'https://extra-ephemera.netlify.app';
-        const blobUrl = `${productionUrl}/api/photos/${blobKey}`;
+        // Use the eager-transformed WebP URL
+        const optimizedUrl = result.eager?.[0]?.secure_url || result.secure_url;
+        const optimizedBytes = result.eager?.[0]?.bytes || result.bytes;
 
-
-        console.log(`Generated blob URL: ${productionUrl}`);
+        console.log(`Successfully uploaded to Cloudinary: ${optimizedUrl}`);
+        console.log(`Original size: ${(file.size / 1024).toFixed(1)}KB, Cloudinary size: ${(optimizedBytes / 1024).toFixed(1)}KB`);
 
         return new Response(JSON.stringify({
             success: true,
-            blobUrl: blobUrl,
-            blobKey: blobKey
+            imageUrl: optimizedUrl,
+            publicId: result.public_id,
+            // Keep blobUrl for backwards compatibility with client code
+            blobUrl: optimizedUrl,
         }), {
             status: 200,
             headers: { 'Content-Type': 'application/json' },
