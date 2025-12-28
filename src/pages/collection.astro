@@ -122,9 +122,9 @@ function createPlantCard(plant: Plant): HTMLElement {
 
     // Handle subtitle
     const subtitleEl = card.querySelector('.subtitle') as HTMLElement;
-    const subtitle = plant.nickname ? (plant.common_name || plant.scientific_name) : plant.scientific_name;
+    const subtitle = plant.common_name ? (plant.nickname || plant.scientific_name) : plant.scientific_name;
     if (displayName !== subtitle) {
-        subtitleEl.textContent = `Common Name: ${subtitle}`;
+        subtitleEl.textContent = `Scientific Name: ${subtitle}`;
     } else {
         subtitleEl.remove();
     }
@@ -155,10 +155,9 @@ function createPlantCard(plant: Plant): HTMLElement {
         const wateringText = card.querySelector('.watering-text') as HTMLElement;
         if (care.water) {
             // Shorten long watering descriptions
-            const shortWater = care.water.length > 30
+            wateringText.textContent = care.water.length > 30
                 ? care.water.substring(0, 30) + '...'
                 : care.water;
-            wateringText.textContent = shortWater;
         } else {
             wateringItem.remove();
         }
