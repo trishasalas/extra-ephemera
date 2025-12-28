@@ -550,7 +550,7 @@ function setupPhotoPreview(): void {
 /**
  * Build metadata object from form data
  */
-function buildMetadata(formData: FormData, currentMetadata: PlantMetadata | null): PlantMetadata | null {
+function buildMetadata(formData: FormData, currentMetadata: PlantMetadata | null | undefined): PlantMetadata | null {
     const metadata: PlantMetadata = {};
 
     // Patent information
@@ -690,14 +690,10 @@ async function handleSave(e: Event): Promise<void> {
         author: (formData.get('author') as string) || null,
         bibliography: (formData.get('bibliography') as string) || null,
         year: yearStr ? parseInt(yearStr, 10) : null,
-        // @ts-ignore
-        slug: currentPlant.slug,
-        // @ts-ignore
-        trefle_id: currentPlant.trefle_id,
-        // @ts-ignore
-        synonyms: currentPlant.synonyms,
-        // @ts-ignore
-        metadata: buildMetadata(formData, currentPlant.metadata),
+        slug: currentPlant.slug ?? null,
+        trefle_id: currentPlant.trefle_id ?? null,
+        synonyms: currentPlant.synonyms ?? null,
+        metadata: buildMetadata(formData, currentPlant.metadata) ?? null,
         notes: (formData.get('notes') as string) || null,
         nickname: (formData.get('nickname') as string) || null,
         location: (formData.get('location') as string) || null,

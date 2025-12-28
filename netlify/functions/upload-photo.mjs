@@ -79,7 +79,8 @@ export default async (request, context) => {
         const productionUrl = process.env.URL || 'https://extra-ephemera.netlify.app';
         const blobUrl = `${productionUrl}/api/photos/${blobKey}`;
 
-        console.log(`Generated blob URL: ${blobUrl}`);
+
+        console.log(`Generated blob URL: ${productionUrl}`);
 
         return new Response(JSON.stringify({
             success: true,

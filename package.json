@@ -13,5 +13,8 @@
     "@neondatabase/serverless": "^0.10.4",
     "@netlify/blobs": "^10.5.0",
     "astro": "^5.16.6"
+  },
+  "devDependencies": {
+    "netlify-cli": "^23.13.0"
   }
 }
