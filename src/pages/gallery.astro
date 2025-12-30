@@ -1,200 +1,73 @@
 ---
-/**
-    * Uses Astro Cloudinary to source images from a Media Library,
-    * display images and videos using components, and using the
-    * Cloudinary Upload Widget for easy uploading support
-    *
-    * See src/content/config.ts for how to define Content Layer collections
-    * See src/pages/api/sign-cloudinary-params.ts for signing upload requests
-    */
-import { getCollection } from 'astro:content';
-import { CldImage, CldVideoPlayer, CldUploadWidget } from 'astro-cloudinary';
-
+import { CldImage } from 'astro-cloudinary';
 import Layout from '../layouts/Layout.astro';
+import galleryData from '../data/gallery.json';
 
-const gallery_image = (await getCollection('gallery_images')).slice(0, 4);
+// Type for cached gallery images
+interface GalleryImage {
+    asset_id: string;
+    public_id: string;
+    format: string;
+    width: number;
+    height: number;
+    display_name: string;
+    created_at: string;
+}
+
+interface GalleryData {
+    folder: string;
+    updated_at: string;
+    count: number;
+    images: GalleryImage[];
+}
+
+const data = galleryData as GalleryData;
+const gallery_images = data.images;
+
+const debug = {
+    folder: data.folder,
+    count: data.count,
+    updated_at: data.updated_at,
+};
 ---
 
-<Layout title="Astro Cloudinary Examples">
+<Layout title="Extra Ephemera Gallery">
     <main class="max-w-5xl mx-auto my-12 px-6">
         <header class="mb-12">
-            <h1 class="text-4xl font-black mb-2">Astro Cloudinary Examples</h1>
-
-            <p>
-                <a class="text-blue-500 hover:underline" href="https://github.com/cloudinary-community/cloudinary-examples/blob/main/examples/astro-cloudinary">View on GitHub</a>
-            </p>
+            <h1 class="text-4xl font-black mb-2">Extra Ephemera Gallery</h1>
         </header>
 
-        <h2 class="text-2xl font-bold mb-3">Optimized Images</h2>
+        <details class="mb-8 border rounded p-4 bg-slate-50">
+            <summary class="cursor-pointer font-semibold">Debug: Gallery Cache</summary>
+            <ul class="mt-3 text-sm leading-6">
+                <li><strong>Folder:</strong> {debug.folder}</li>
+                <li><strong>Cached images:</strong> {debug.count}</li>
+                <li><strong>Last updated:</strong> {new Date(debug.updated_at).toLocaleString()}</li>
+                <li class="text-slate-500 mt-2">Run <code class="bg-slate-200 px-1 rounded">npm run refresh-gallery</code> to update</li>
+            </ul>
+        </details>
 
-        <p class="mb-6">
-            Embedded using <a class="text-blue-500 hover:underline" href="https://astro.cloudinary.dev/cldimage/basic-usage">CldImage</a> optimizing images by default.
-        </p>
+        <h2 class="text-2xl font-bold mb-3">Gallery</h2>
 
-        <ul class="grid grid-cols-4 gap-4 mb-12">
-            {gallery_images.map(({ data: gallery_img }) => {
-                return (
-                        <li>
-                            <CldImage
-                                    src={gallery_img.public_id}
-                                    width={gallery_img.width}
-                                    height={gallery_img.height}
-                                    alt=""
-                                    sizes="25vw"
-                            />
-                        </li>
-                )
-            })}
-        </ul>
-
-        <h2 class="text-2xl font-bold mb-3">Cropping</h2>
-
-        <p class="mb-6">
-            Embedded using <a class="text-blue-500 hover:underline" href="https://astro.cloudinary.dev/cldimage/basic-usage">CldImage</a> with pre-defined with and height and <code class="bg-slate-200 px-2 py-1 rounded">crop: 'auto'</code>.
-        </p>
-
-        <ul class="grid grid-cols-4 gap-4 mb-12">
-            {products.map(({ data: product }) => {
-                return (
-                        <li>
-                            <CldImage
-                                    src={product.public_id}
-                                    width={900}
-                                    height={900}
-                                    crop="auto"
-                                    alt=""
-                                    sizes="25vw"
-                            />
-                        </li>
-                )
-            })}
-        </ul>
-
-        <h2 class="text-2xl font-bold mb-3">Videos</h2>
-
-        <p class="mb-6">
-            Embedded using <a class="text-blue-500 hover:underline" href="https://astro.cloudinary.dev/cldvideoplayer/basic-usage">CldImage</a>.
-        </p>
-
-        <ul class="grid grid-cols-2 gap-4 mb-12">
-            {videos.map(({ data: video }) => {
-                return (
-                        <li>
-                            <CldVideoPlayer
-                                    src={video.public_id}
-                                    width={video.width}
-                                    height={video.height}
-                            />
-                        </li>
-                )
-            })}
-        </ul>
-
-        <h2 class="text-2xl font-bold mb-3">Uploading</h2>
-
-        <p class="mb-6">
-            Select an asset to test uploading with the <a class="text-blue-500 hover:underline" href="https://astro.cloudinary.dev/clduploadwidget/basic-usage">CldUploadWidget</a>.
-        </p>
-
-        <div class="mb-12">
-            <CldUploadWidget id="upload-example-widget" uploadPreset="astro-cloudinary" signatureEndpoint="/api/sign-cloudinary-params">
-                <button class="text-white font-bold bg-blue-500 px-4 py-2 rounded">Upload</button>
-            </CldUploadWidget>
-            <div id="upload-example-results" class="grid grid-cols-3 gap-4 hidden mt-6"></div>
-            <template id="upload-example-template">
-                <p class="m-0 bg-slate-300">
-                    <img src="" alt="Upload Result" />
-                </p>
-            </template>
-        </div>
-
-        <h2 class="text-2xl font-bold mb-3">Social Card</h2>
-
-        <p class="mb-6">
-            This image is just a preview. Inspect the <code>og:image</code> tag on the page to see the
-            output using <a class="text-blue-500 hover:underline" href="https://astro.cloudinary.dev/getcldogimageurl/basic-usage">getCldOgImageUrl</a>.
-        </p>
-
-        <p>
-            <CldImage
-                    src="samples/balloons"
-                    width={1200}
-                    height={630}
-                    crop={{
-                        width: 1200,
-                        height: 630,
-                        source: true,
-                        gravity: 'center',
-                        type: 'fill'
-                    }}
-                    effects={[
-                        {
-                            background: 'rgb:010A44'
-                        },
-                        {
-                            color: 'rgb:2A005F',
-                            colorize: '100'
-                        },
-                        {
-                            gradientFade: 'symmetric'
-                        }
-                    ]}
-                    overlays={[
-                        {
-                            publicId: 'samples/balloons',
-                            width: '1.0',
-                            height: '1.0',
-                            crop: 'fill',
-                            effects: [{
-                                opacity: 20
-                            }],
-                            flags: 'relative'
-                        },
-                        {
-                            width: 700,
-                            crop: 'fit',
-                            text: {
-                                alignment: 'center',
-                                color: 'white',
-                                fontFamily: 'Source Sans Pro',
-                                fontSize: 80,
-                                fontWeight: 'bold',
-                                text: 'Astro Cloudinary Examples',
-                                lineSpacing: -20
-                            },
-                            flags: ['relative']
-                        },
-                    ]}
-            />
-        </p>
-
-
+        {gallery_images && gallery_images.length > 0 ? (
+            <ul class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4 mb-12">
+                {gallery_images.map((img) => (
+                    <li class="aspect-square overflow-hidden rounded-lg">
+                        <CldImage
+                            src={img.public_id}
+                            width={img.width}
+                            height={img.height}
+                            alt={img.display_name || ''}
+                            sizes="25vw"
+                            class="w-full h-full object-cover"
+                        />
+                    </li>
+                ))}
+            </ul>
+        ) : (
+            <p class="text-slate-600 mb-12">
+                No images found. Run <code>npm run refresh-gallery</code> to fetch images from Cloudinary.
+            </p>
+        )}
     </main>
 </Layout>
-
-<script>
-    const widget = document.querySelector('#upload-example-widget');
-
-    if ( widget ) {
-        const widgetResults = document.querySelector('#upload-example-results');
-        const widgetTemplate = document.querySelector('#upload-example-template') as HTMLTemplateElement;
-
-        if ( !widgetResults || !widgetTemplate ) {
-            throw new Error('Missing widget template locations');
-        }
-
-        widget.addEventListener('clduploadwidget:success', ((e: CustomEvent<{ detail: object }>) => {
-            console.log('clduploadwidget:success', e.detail);
-            const result = widgetTemplate.content.cloneNode(true) as HTMLTemplateElement;
-            // @ts-expect-error
-            result.querySelector('img')?.setAttribute('src', e.detail.info.secure_url);
-            widgetResults.appendChild(result);
-            widgetResults.classList.remove('hidden');
-        }) as EventListener);
-
-        widget.addEventListener('clduploadwidget:queues-end', ((e: CustomEvent<{ detail: { UploadWidget: any } }>) => {
-            // @ts-expect-error
-            e.detail.UploadWidget?.close();
-        }) as EventListener);
-    }
-</script>

@@ -17,6 +17,9 @@ netlify dev                    # Run with Netlify functions + database access (p
 npm run build                  # Build for production to ./dist/
 npm run preview                # Preview production build locally
 
+# Gallery Management
+npm run refresh-gallery        # Fetch gallery images from Cloudinary and cache locally
+
 # Database Setup (first time only)
 netlify db init --no-boilerplate   # Initialize Neon Postgres database
 # Then apply schema: psql "connection-string" -f database/schema.sql
@@ -36,9 +39,13 @@ netlify db init --no-boilerplate   # Initialize Neon Postgres database
 src/
 ├── assets/          # CSS and static assets (style.css lives here)
 ├── components/      # Astro components
+├── data/            # Cached data files (gallery.json)
 ├── layouts/         # Page layouts (Layout.astro with nav)
-├── pages/           # Route pages (index, collection, add, plant)
+├── pages/           # Route pages (index, collection, add, plant, gallery)
 └── js/              # Client-side JavaScript utilities
+
+scripts/
+└── refresh-gallery.mjs  # Fetches gallery images from Cloudinary API
 
 netlify/
 ├── functions/       # Serverless API endpoints (.mjs files)
@@ -210,6 +217,9 @@ DATABASE_URL=postgresql://... (auto-injected by Netlify)
 CLOUDINARY_CLOUD_NAME=your-cloud-name
 CLOUDINARY_API_KEY=your-api-key
 CLOUDINARY_API_SECRET=your-api-secret
+# PUBLIC_ prefixed versions for astro-cloudinary components (CldImage, etc.)
+PUBLIC_CLOUDINARY_CLOUD_NAME=your-cloud-name
+PUBLIC_CLOUDINARY_API_KEY=your-api-key
 PLANTNET_API=your-plantnet-key (optional, not currently used)
 ```
 
@@ -286,6 +296,40 @@ const result = await cloudinary.uploader.upload(dataUrl, {
 return { success: true, imageUrl: result.secure_url };
 ```
 
+### Cached Data Pattern (Gallery)
+
+**Why not use astro-cloudinary's cldAssetsLoader?**
+
+The `astro-cloudinary` package provides a `cldAssetsLoader` for Astro content collections, but it has environment variable loading issues during content sync. Even with correct credentials, it returns "Not Found" errors because `import.meta.env` variables aren't populated during the sync phase.
+
+**Solution: Cached JSON approach**
+
+Instead of using the content loader, gallery images use a manual caching approach:
+
+1. **Refresh script** (`scripts/refresh-gallery.mjs`):
+   - Fetches from Cloudinary API using `process.env` (works reliably)
+   - Saves metadata to `src/data/gallery.json`
+   - Run manually: `npm run refresh-gallery`
+
+2. **Gallery page** reads from local JSON:
+   ```astro
+   ---
+   import galleryData from '../data/gallery.json';
+   const images = galleryData.images;
+   ---
+   ```
+
+3. **CldImage** still handles optimized delivery from Cloudinary CDN
+
+**Benefits:**
+- Zero API calls during builds
+- Full control over when API calls happen
+- Images still get Cloudinary's automatic optimization
+- Build times reduced significantly
+
+**Cloudinary Folder Modes:**
+This account uses **dynamic** folder mode where `asset_folder` is metadata, not part of `public_id`. The correct API endpoint is `/resources/by_asset_folder?asset_folder=gallery`.
+
 ## Current Features
 
 1. **Search Plants** (`/` - index.astro):
@@ -319,6 +363,12 @@ return { success: true, imageUrl: result.secure_url };
      - Upload to Cloudinary with slug-based naming
      - Replaces image_url field completely
      - Fallback to URL input for external images
+
+5. **Gallery** (`/gallery` - gallery.astro):
+   - Displays images from Cloudinary `gallery` folder
+   - Uses cached JSON metadata (no API calls during build)
+   - Images served via Cloudinary CDN with `CldImage` optimization
+   - Run `npm run refresh-gallery` to update cache when adding photos
 
 ## Database Setup Process
 
@@ -370,6 +420,7 @@ Session logs serve multiple purposes:
 - `2025-12-27-typescript-refactoring.md` - Extracting inline JS to typed modules
 - `2025-12-27-blob-storage-fixes.md` - Configuring Netlify Blobs for local dev
 - `2025-12-27-stories-feature.md` - Implementing Astro content collections
+- `2025-12-30-gallery-cloudinary-loader.md` - Gallery page with cached Cloudinary metadata
 
 ## Important Notes
 
