@@ -894,3 +894,33 @@ header p {
     border-color: #2d5a27;
     box-shadow: 0 0 0 2px rgba(45, 90, 39, 0.1);
 }
+
+.flex {
+    display: flex;
+}
+
+.grid {
+    display:grid;
+    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+    gap: 1rem;
+}
+
+.gallery {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+}
+
+.gallery li {
+    aspect-ratio: 1;
+    width: 100%;
+}
+
+.gallery img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+    overflow: hidden;
+    border-radius: 0.5rem;
+}
