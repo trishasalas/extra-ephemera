@@ -1,12 +1,12 @@
 ---
+// stories/index.astro
 import { getCollection } from 'astro:content';
 import Layout from '../../layouts/Layout.astro';
 
 // Fetch all stories and sort by date (newest first)
 const allStories = await getCollection('stories');
 const stories = allStories.sort((a, b) =>
-    b.data.date.valueOf() - a.data.date.valueOf()
-);
+    b.data.date.valueOf() - a.data.date.valueOf());
 ---
 
 <Layout pageTitle="The Mosslight Nook Stories">

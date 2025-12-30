@@ -4,9 +4,3 @@
 
 [functions]
   directory = "netlify/functions"
-
-# Enable Netlify Blobs
-[dev]
-  # Use production blobs during local dev (requires `netlify link` and authenticated session)
-  # This ensures blobs uploaded locally go to production storage
-  blobsContext = "deploy"

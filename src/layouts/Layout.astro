@@ -1,6 +1,8 @@
 ---
+// Layout.astro
 import '../assets/style.css'
 const { pageTitle } = Astro.props;
+import Nav from '../components/Nav.astro'
 ---
 
 <!doctype html>
@@ -13,15 +15,7 @@ const { pageTitle } = Astro.props;
 		<title>{pageTitle}</title>
 	</head>
 	<body>
-		<nav class="main-nav">
-			<a href="/" class="nav-logo">🌱 Extra Ephemera</a>
-			<ul class="nav-links">
-				<li><a href="/collection">Collection</a></li>
-				<li><a href="/stories">Stories</a></li>
-				<li><a href="/">Search</a></li>
-				<li><a href="/add">Add Cultivar</a></li>
-			</ul>
-		</nav>
+	<Nav />
 		<main>
 			<slot />
 		</main>

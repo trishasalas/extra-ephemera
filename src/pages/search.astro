@@ -1,0 +1,109 @@
+---
+// search.astro
+import Layout from '../layouts/Layout.astro';
+---
+
+<Layout>
+    <div class="container">
+        <header>
+            <h1>🌱 Extra Ephemera</h1>
+            <p>The Mosslight Nook Plant Catalog</p>
+        </header>
+
+        <div class="api-selector">
+            <label class="api-option">
+                <input type="radio" name="api-source" id="api-trefle" value="trefle" checked>
+                <span>Trefle</span>
+            </label>
+            <label class="api-option">
+                <input type="radio" name="api-source" id="api-perenual" value="perenual">
+                <span>Perenual</span>
+            </label>
+        </div>
+
+        <form id="search-form" class="search-form">
+            <input
+                    type="text"
+                    id="search-input"
+                    placeholder="Search for a plant..."
+                    value="alocasia"
+            >
+            <button type="submit">Search</button>
+        </form>
+
+        <p class="add-cultivar-link">Can't find your plant? <a href="/add">Add a cultivar manually</a></p>
+
+        <div id="results" class="results"></div>
+    </div>
+
+    <template id="search-result-template">
+        <div class="plant-card">
+            <img class="card-image" alt="">
+            <div class="no-image">No image</div>
+            <div class="card-content">
+                <h3 class="scientific-name"></h3>
+                <p class="common-name"></p>
+                <p class="taxonomy family"><strong>Family:</strong> <span class="family-value"></span></p>
+                <p class="taxonomy genus"><strong>Genus:</strong> <span class="genus-value"></span></p>
+                <div class="card-actions">
+                    <button class="compare-btn">Compare</button>
+                    <button class="add-btn">Add to Collection</button>
+                </div>
+            </div>
+        </div>
+    </template>
+
+    <dialog id="comparison-modal" class="comparison-modal">
+        <div class="modal-header">
+            <h2>Plant Comparison</h2>
+            <button class="modal-close" aria-label="Close">&times;</button>
+        </div>
+
+        <div class="modal-body">
+            <div class="comparison-loading">
+                <p>Searching for matching plant...</p>
+            </div>
+
+            <div class="comparison-error" style="display: none;">
+                <p class="error-message"></p>
+                <button class="retry-btn">Try Again</button>
+                <button class="cancel-btn">Cancel</button>
+            </div>
+
+            <div class="comparison-content" style="display: none;">
+                <div class="comparison-table-wrapper">
+                    <table class="comparison-table">
+                        <thead>
+                        <tr>
+                            <th>Field</th>
+                            <th class="source-col-1"></th>
+                            <th class="source-col-2"></th>
+                            <th>Merged</th>
+                        </tr>
+                        </thead>
+                        <tbody id="comparison-rows"></tbody>
+                    </table>
+                </div>
+
+                <div class="merge-preview">
+                    <h3>Preview Merged Plant</h3>
+                    <div class="preview-card"></div>
+                </div>
+
+                <div class="modal-actions">
+                    <button class="cancel-btn">Cancel</button>
+                    <button class="save-merged-btn">Save Merged Plant</button>
+                </div>
+            </div>
+        </div>
+    </dialog>
+
+    <template id="comparison-row-template">
+        <tr>
+            <td class="field-name"></td>
+            <td class="value-1"></td>
+            <td class="value-2"></td>
+            <td class="merged-value"></td>
+        </tr>
+    </template>
+</Layout>
