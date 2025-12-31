@@ -4,6 +4,7 @@ const { frontmatter } = Astro.props;
 ---
 
 <Layout pageTitle={frontmatter.title}>
+  <div class="container">
   <div class="story-meta">
     <p class="date">{frontmatter.date.toLocaleDateString()}</p>
     {frontmatter.authors && frontmatter.authors.length > 0 && (
@@ -31,7 +32,9 @@ const { frontmatter } = Astro.props;
       ))}
     </div>
   )}
+  </div>
 </Layout>
+
 <style>
   a {
     color: #00539f;
