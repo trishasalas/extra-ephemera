@@ -1,3 +1,11 @@
+/**
+ * Check if user is authenticated (passed from server via data attribute)
+ */
+function isAuthenticated(): boolean {
+    const container = document.querySelector('.container');
+    return container?.getAttribute('data-authenticated') === 'true';
+}
+
 interface PlantSearchResult {
     id: number | string;
     source?: 'trefle' | 'perenual';
@@ -117,21 +125,29 @@ function createPlantCard(plant: PlantSearchResult): HTMLElement {
         genusEl.remove();
     }
 
-    // Wire up the compare button
+    // Only show action buttons for authenticated users
     const compareBtn = card.querySelector('.compare-btn') as HTMLButtonElement;
-    const currentSource = plant.source || 'trefle';
-    const otherSource = currentSource === 'trefle' ? 'perenual' : 'trefle';
-    compareBtn.textContent = `Compare`;
-
-    compareBtn.addEventListener('click', () => {
-        openComparisonModal(plant, otherSource);
-    });
-
-    // Wire up the add button
     const addBtn = card.querySelector('.add-btn') as HTMLButtonElement;
-    addBtn.addEventListener('click', () => {
-        addToCollection(plant, addBtn);
-    });
+
+    if (isAuthenticated()) {
+        // Wire up the compare button
+        const currentSource = plant.source || 'trefle';
+        const otherSource = currentSource === 'trefle' ? 'perenual' : 'trefle';
+        compareBtn.textContent = `Compare`;
+
+        compareBtn.addEventListener('click', () => {
+            openComparisonModal(plant, otherSource);
+        });
+
+        // Wire up the add button
+        addBtn.addEventListener('click', () => {
+            addToCollection(plant, addBtn);
+        });
+    } else {
+        // Hide action buttons for non-authenticated users
+        const actionsEl = card.querySelector('.card-actions') as HTMLElement;
+        if (actionsEl) actionsEl.remove();
+    }
 
     return cardEl;
 }

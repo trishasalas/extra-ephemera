@@ -1,10 +1,15 @@
 ---
 // search.astro
 import Layout from '../layouts/Layout.astro';
+import { SignedIn } from '@clerk/astro/components';
+
+// Check if user is authenticated
+const { userId } = Astro.locals.auth();
+const isAuthenticated = !!userId;
 ---
 
 <Layout>
-    <div class="container">
+    <div class="container" data-authenticated={isAuthenticated.toString()}>
         <header>
             <h1>🌱 Extra Ephemera</h1>
             <p>The Mosslight Nook Plant Catalog</p>
@@ -31,7 +36,9 @@ import Layout from '../layouts/Layout.astro';
             <button type="submit">Search</button>
         </form>
 
-        <p class="add-cultivar-link">Can't find your plant? <a href="/add">Add a cultivar manually</a></p>
+        <SignedIn>
+            <p class="add-cultivar-link">Can't find your plant? <a href="/add">Add a cultivar manually</a></p>
+        </SignedIn>
 
         <div id="results" class="results"></div>
     </div>

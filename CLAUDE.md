@@ -430,3 +430,58 @@ Session logs serve multiple purposes:
 - CSS is centralized in `src/assets/style.css` (previously was inline)
 - Client-side TypeScript in `src/js/main.ts` handles search and "add to collection" flow
 - Template-based DOM manipulation is preferred over `innerHTML` for dynamic content
+
+## Working with Third-Party Libraries
+
+**Always check the official documentation before implementing third-party SDK integrations.** Do not assume API shapes based on naming conventions.
+
+When integrating a new library:
+1. Use `WebFetch` to read the official docs (e.g., `https://clerk.com/docs/references/backend/verify-token`)
+2. Verify function signatures, required parameters, and return types
+3. Check for framework-specific examples (Astro, Next.js, etc.)
+
+This prevents bugs from incorrect API usage and saves debugging time.
+
+## Authentication (Clerk)
+
+Authentication is handled by [Clerk](https://clerk.com) with the `@clerk/astro` integration.
+
+### Setup
+- **Middleware**: `src/middleware.ts` - Attaches auth to `Astro.locals`
+- **Auth utility**: `netlify/utils/auth.mjs` - Verifies tokens in Netlify Functions
+- **Components**: `SignedIn`, `SignedOut`, `SignInButton`, `UserButton` from `@clerk/astro/components`
+
+### Protected Routes
+- **Pages**: `/add` redirects to home if not authenticated
+- **API endpoints**: `add-plant`, `update-plant`, `upload-photo` require authentication
+- **UI elements**: Edit buttons, Add to Collection buttons hidden for guests
+
+### Environment Variables
+```env
+PUBLIC_CLERK_PUBLISHABLE_KEY=pk_...
+CLERK_SECRET_KEY=sk_...
+```
+
+### Verifying Auth in Netlify Functions
+```javascript
+import { verifyAuth, unauthorizedResponse } from '../utils/auth.mjs';
+
+export default async (request, context) => {
+    const userId = await verifyAuth(request);
+    if (!userId) {
+        return unauthorizedResponse();
+    }
+    // ... protected logic
+};
+```
+
+### Checking Auth in Astro Pages
+```astro
+---
+const { userId } = Astro.locals.auth();
+const isAuthenticated = !!userId;
+---
+<div data-authenticated={isAuthenticated.toString()}>
+    <!-- Client JS can read this attribute -->
+</div>
+```

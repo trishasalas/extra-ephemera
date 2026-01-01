@@ -1,4 +1,5 @@
 import { getDb } from '../utils/db.mjs';
+import { verifyAuth, unauthorizedResponse } from '../utils/auth.mjs';
 
 export default async (request, context) => {
     // Only allow POST
@@ -7,6 +8,12 @@ export default async (request, context) => {
             status: 405,
             headers: { 'Content-Type': 'application/json' },
         });
+    }
+
+    // Require authentication
+    const userId = await verifyAuth(request);
+    if (!userId) {
+        return unauthorizedResponse();
     }
 
     try {

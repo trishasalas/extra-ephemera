@@ -1,4 +1,5 @@
 import { v2 as cloudinary } from 'cloudinary';
+import { verifyAuth, unauthorizedResponse } from '../utils/auth.mjs';
 
 // Configure Cloudinary from environment variables
 cloudinary.config({
@@ -25,6 +26,12 @@ export default async (request, context) => {
             status: 405,
             headers: { 'Content-Type': 'application/json' },
         });
+    }
+
+    // Require authentication
+    const userId = await verifyAuth(request);
+    if (!userId) {
+        return unauthorizedResponse();
     }
 
     try {

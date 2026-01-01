@@ -84,6 +84,14 @@ interface GetPlantResponse {
 let currentPlant: PlantData | null = null;
 
 /**
+ * Check if user is authenticated (passed from server via data attribute)
+ */
+function isAuthenticated(): boolean {
+    const container = document.querySelector('.container');
+    return container?.getAttribute('data-authenticated') === 'true';
+}
+
+/**
  * Load plant data from API based on URL query parameter
  */
 async function loadPlant(): Promise<void> {
@@ -144,7 +152,7 @@ function displayPlant(plant: PlantData): void {
                     ? `<p class="common-name">${plant.common_name}</p>`
                     : ''
                 }
-                <button id="edit-btn" class="edit-btn">Edit Plant</button>
+                ${isAuthenticated() ? '<button id="edit-btn" class="edit-btn">Edit Plant</button>' : ''}
             </div>
         </div>
 

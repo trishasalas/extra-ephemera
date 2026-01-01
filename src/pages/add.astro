@@ -1,5 +1,11 @@
 ---
 import Layout from '../layouts/Layout.astro';
+
+// Require authentication for this page
+const { userId } = Astro.locals.auth();
+if (!userId) {
+    return Astro.redirect('/');
+}
 ---
 
 <Layout>

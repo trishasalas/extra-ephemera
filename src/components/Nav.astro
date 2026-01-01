@@ -1,5 +1,6 @@
 ---
 // Nav.astro
+import { SignedIn, SignedOut, SignInButton, UserButton } from '@clerk/astro/components';
 ---
 <nav class="main-nav">
     <a href="/" class="nav-logo">🌱 Extra Ephemera</a>
@@ -8,6 +9,16 @@
         <li><a href="/gallery">Gallery</a></li>
         <li><a href="/stories">Stories</a></li>
         <li><a href="/search">Search</a></li>
-        <li><a href="/add">Add Cultivar</a></li>
+        <SignedIn>
+            <li><a href="/add">Add Cultivar</a></li>
+        </SignedIn>
     </ul>
+    <div class="nav-auth">
+        <SignedOut>
+            <SignInButton mode="modal" />
+        </SignedOut>
+        <SignedIn>
+            <UserButton />
+        </SignedIn>
+    </div>
 </nav>

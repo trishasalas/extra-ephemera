@@ -51,6 +51,26 @@ body {
     color: #2d5a27;
 }
 
+.nav-auth {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.nav-auth button {
+    background: #2d5a27;
+    color: white;
+    border: none;
+    padding: 0.5rem 1rem;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 0.9rem;
+}
+
+.nav-auth button:hover {
+    background: #1e3d1a;
+}
+
 main {
     padding: 1rem 0;
 }
