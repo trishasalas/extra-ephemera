@@ -17,6 +17,10 @@ netlify dev                    # Run with Netlify functions + database access (p
 npm run build                  # Build for production to ./dist/
 npm run preview                # Preview production build locally
 
+# Testing
+npm run test                   # Run tests in watch mode
+npm run test:run               # Run tests once
+
 # Gallery Management
 npm run refresh-gallery        # Fetch gallery images from Cloudinary and cache locally
 
@@ -58,7 +62,15 @@ netlify/
 │   ├── call-perenual.mjs       # GET /api/perenual?q=...
 │   └── call-perenual-care.mjs  # GET /api/perenual-care?species_id=...
 └── utils/
-    └── db.mjs       # Database connection helper (uses DATABASE_URL env var)
+    ├── auth.mjs         # Clerk token verification for Netlify Functions
+    ├── db.mjs           # Database connection helper (uses DATABASE_URL env var)
+    ├── errors.mjs       # Safe error responses (prevents leaking internals)
+    ├── rate-limit.mjs   # Rate limiting using Netlify Blobs
+    └── validation.mjs   # Input validation and sanitization
+
+tests/                   # Vitest test suite
+├── auth.test.ts         # Authentication utility tests
+└── validation.test.ts   # Input validation tests
 
 database/
 ├── schema.sql       # Complete Postgres schema with triggers
@@ -485,3 +497,86 @@ const isAuthenticated = !!userId;
     <!-- Client JS can read this attribute -->
 </div>
 ```
+
+## Security
+
+The application implements defense-in-depth security measures across all API endpoints.
+
+### Input Validation (`netlify/utils/validation.mjs`)
+
+All user input is validated and sanitized before processing:
+
+```javascript
+import { validateId, validateString, validateSearchQuery, sanitizeMetadata, validateRequired } from '../utils/validation.mjs';
+
+// Validate numeric IDs (returns null if invalid)
+const plantId = validateId(request.params.id);
+if (!plantId) return errors.badRequest('Invalid plant ID');
+
+// Sanitize strings with length limits
+const nickname = validateString(body.nickname, 100);
+
+// Sanitize search queries (removes dangerous characters)
+const query = validateSearchQuery(url.searchParams.get('q'));
+
+// Validate metadata objects (10KB limit, prevents prototype pollution)
+const metadata = sanitizeMetadata(body.metadata);
+
+// Check required fields
+const { valid, missing } = validateRequired(body, ['scientific_name']);
+if (!valid) return errors.badRequest(`Missing fields: ${missing.join(', ')}`);
+```
+
+### Rate Limiting (`netlify/utils/rate-limit.mjs`)
+
+Uses Netlify Blobs to track request counts with a sliding window:
+
+```javascript
+import { rateLimitByIP, rateLimitByUser } from '../utils/rate-limit.mjs';
+
+// Public endpoints: 60 requests/minute per IP
+const rateLimit = await rateLimitByIP(request);
+if (!rateLimit.allowed) return errors.tooManyRequests();
+
+// Authenticated endpoints: 10 writes/minute per user
+const rateLimit = await rateLimitByUser(userId, 10);
+if (!rateLimit.allowed) return errors.tooManyRequests();
+```
+
+**Rate limits by endpoint type:**
+- Public read endpoints (search, get): 60/minute per IP
+- Authenticated write endpoints (add, update, upload): 10/minute per user
+
+### Safe Error Handling (`netlify/utils/errors.mjs`)
+
+Prevents leaking internal error details to clients:
+
+```javascript
+import { errors, successResponse } from '../utils/errors.mjs';
+
+// Standard error responses (logs internally, returns generic message)
+return errors.badRequest('Invalid input');      // 400
+return errors.unauthorized();                    // 401
+return errors.notFound('Plant');                 // 404
+return errors.tooManyRequests();                 // 429
+return errors.serverError(actualError);          // 500 (logs real error)
+
+// Success responses
+return successResponse({ plant: data });         // 200
+return successResponse({ id: newId }, 201);      // 201
+```
+
+### Testing
+
+Run the security test suite:
+
+```bash
+npm run test:run     # Run all tests once
+npm run test         # Run in watch mode
+```
+
+Test coverage includes:
+- Input validation edge cases (33 tests)
+- Auth token verification
+- Rate limit behavior
+- Error response formatting
