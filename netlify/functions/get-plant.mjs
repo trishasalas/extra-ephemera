@@ -1,14 +1,15 @@
 import { getDb } from '../utils/db.mjs';
+import { validateId } from '../utils/validation.mjs';
+import { errors, successResponse } from '../utils/errors.mjs';
 
 export default async (request, context) => {
     const url = new URL(request.url);
-    const id = url.searchParams.get('id');
+    const rawId = url.searchParams.get('id');
 
+    // Validate ID is a positive integer
+    const id = validateId(rawId);
     if (!id) {
-        return new Response(JSON.stringify({ error: 'Plant ID required' }), {
-            status: 400,
-            headers: { 'Content-Type': 'application/json' },
-        });
+        return errors.badRequest('Valid plant ID required');
     }
 
     try {
@@ -21,26 +22,13 @@ export default async (request, context) => {
         `;
 
         if (result.length === 0) {
-            return new Response(JSON.stringify({ error: 'Plant not found' }), {
-                status: 404,
-                headers: { 'Content-Type': 'application/json' },
-            });
+            return errors.notFound('Plant');
         }
 
-        return new Response(JSON.stringify({ plant: result[0] }), {
-            status: 200,
-            headers: { 'Content-Type': 'application/json' },
-        });
+        return successResponse({ plant: result[0] });
 
     } catch (error) {
-        console.error('Error fetching plant:', error);
-        return new Response(JSON.stringify({ 
-            error: 'Failed to fetch plant', 
-            details: error.message 
-        }), {
-            status: 500,
-            headers: { 'Content-Type': 'application/json' },
-        });
+        return errors.serverError(error);
     }
 };
 

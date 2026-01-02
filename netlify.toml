@@ -4,3 +4,14 @@
 
 [functions]
   directory = "netlify/functions"
+
+# Security headers for all pages
+[[headers]]
+  for = "/*"
+  [headers.values]
+    X-Frame-Options = "DENY"
+    X-Content-Type-Options = "nosniff"
+    X-XSS-Protection = "1; mode=block"
+    Referrer-Policy = "strict-origin-when-cross-origin"
+    Permissions-Policy = "camera=(), microphone=(), geolocation=()"
+    Content-Security-Policy = "default-src 'self'; img-src 'self' https://res.cloudinary.com https://*.trefle.io https://perenual.com https://bs.plantnet.org data:; script-src 'self' 'unsafe-inline' https://*.clerk.accounts.dev; style-src 'self' 'unsafe-inline'; connect-src 'self' https://*.clerk.accounts.dev; frame-src https://*.clerk.accounts.dev;"

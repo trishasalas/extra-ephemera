@@ -1,4 +1,5 @@
 import { getDb } from '../utils/db.mjs';
+import { errors, successResponse } from '../utils/errors.mjs';
 
 export default async (request, context) => {
     try {
@@ -22,20 +23,10 @@ export default async (request, context) => {
             ORDER BY added_at DESC
         `;
 
-        return new Response(JSON.stringify({ plants }), {
-            status: 200,
-            headers: { 'Content-Type': 'application/json' },
-        });
+        return successResponse({ plants });
 
     } catch (error) {
-        console.error('Error fetching plants:', error);
-        return new Response(JSON.stringify({ 
-            error: 'Failed to fetch plants', 
-            details: error.message 
-        }), {
-            status: 500,
-            headers: { 'Content-Type': 'application/json' },
-        });
+        return errors.serverError(error);
     }
 };
 

@@ -1,16 +1,27 @@
-export default async (request, context) => {
-    const apiKey = process.env.VITE_PERENUAL_API;
-    const url = new URL(request.url);
-    const query = url.searchParams.get('q') || '';
+import { validateSearchQuery } from '../utils/validation.mjs';
+import { errors, successResponse } from '../utils/errors.mjs';
+import { rateLimitByIP } from '../utils/rate-limit.mjs';
 
-    if (!apiKey) {
-        return new Response(
-            JSON.stringify({ error: 'VITE_PERENUAL_API key not configured' }),
-            { status: 500, headers: { 'Content-Type': 'application/json' } }
-        );
+export default async (request, context) => {
+    // Rate limit: 60 requests per minute per IP
+    const rateLimit = await rateLimitByIP(request, 60);
+    if (!rateLimit.allowed) {
+        return errors.tooManyRequests();
     }
 
-    const apiEndpoint = `https://perenual.com/api/v2/species-list?key=${apiKey}&q=${query}`;
+    const apiKey = process.env.VITE_PERENUAL_API;
+
+    if (!apiKey) {
+        return errors.serverError('Perenual API not configured');
+    }
+
+    const url = new URL(request.url);
+    const rawQuery = url.searchParams.get('q');
+
+    // Validate and sanitize the search query
+    const query = validateSearchQuery(rawQuery) || '';
+
+    const apiEndpoint = `https://perenual.com/api/v2/species-list?key=${apiKey}&q=${encodeURIComponent(query)}`;
 
     try {
         const response = await fetch(apiEndpoint);
@@ -37,16 +48,9 @@ export default async (request, context) => {
             }))
         };
 
-        return new Response(JSON.stringify(normalized), {
-            status: 200,
-            headers: { 'Content-Type': 'application/json' },
-        });
+        return successResponse(normalized);
     } catch (error) {
-        console.error('Perenual API error:', error);
-        return new Response(
-            JSON.stringify({ error: 'Failed to fetch from Perenual' }),
-            { status: 500, headers: { 'Content-Type': 'application/json' } }
-        );
+        return errors.serverError(error);
     }
 };
 

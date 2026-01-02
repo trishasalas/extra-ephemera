@@ -1,13 +1,13 @@
 import { getDb } from '../utils/db.mjs';
 import { verifyAuth, unauthorizedResponse } from '../utils/auth.mjs';
+import { validateString, validateRequired, sanitizeMetadata } from '../utils/validation.mjs';
+import { errors, successResponse } from '../utils/errors.mjs';
+import { rateLimitByUser } from '../utils/rate-limit.mjs';
 
 export default async (request, context) => {
     // Only allow POST
     if (request.method !== 'POST') {
-        return new Response(JSON.stringify({ error: 'Method not allowed' }), {
-            status: 405,
-            headers: { 'Content-Type': 'application/json' },
-        });
+        return errors.methodNotAllowed();
     }
 
     // Require authentication
@@ -16,42 +16,44 @@ export default async (request, context) => {
         return unauthorizedResponse();
     }
 
+    // Rate limit: 10 requests per minute per user
+    const rateLimit = await rateLimitByUser(userId, 10);
+    if (!rateLimit.allowed) {
+        return errors.tooManyRequests();
+    }
+
     try {
         const body = await request.json();
-        const sql = getDb();
-
-        // Extract fields from the request body
-        const {
-            scientific_name,
-            common_name,
-            family,
-            family_common_name,
-            genus,
-            image_url,
-            author,
-            bibliography,
-            year,
-            synonyms,
-            slug,
-            trefle_id,
-            // Flexible metadata (patents, breeding, etc.)
-            metadata,
-            // Reference notes (freeform text)
-            notes,
-            // Personal fields (optional on initial add)
-            nickname,
-            location,
-            acquired_date,
-            status,
-        } = body;
 
         // Validate required field
-        if (!scientific_name) {
-            return new Response(JSON.stringify({ error: 'scientific_name is required' }), {
-                status: 400,
-                headers: { 'Content-Type': 'application/json' },
-            });
+        const requiredError = validateRequired(body, ['scientific_name']);
+        if (requiredError) {
+            return errors.badRequest(requiredError);
         }
+
+        const sql = getDb();
+
+        // Validate and sanitize string fields
+        const scientific_name = validateString(body.scientific_name, 500);
+        const common_name = validateString(body.common_name, 255);
+        const family = validateString(body.family, 255);
+        const family_common_name = validateString(body.family_common_name, 255);
+        const genus = validateString(body.genus, 255);
+        const image_url = validateString(body.image_url, 2048);
+        const author = validateString(body.author, 255);
+        const bibliography = validateString(body.bibliography, 1000);
+        const year = body.year ? parseInt(body.year, 10) : null;
+        const synonyms = validateString(body.synonyms, 2000);
+        const slug = validateString(body.slug, 255);
+        const trefle_id = body.trefle_id ? parseInt(body.trefle_id, 10) : null;
+        const notes = validateString(body.notes, 5000);
+        const nickname = validateString(body.nickname, 255);
+        const location = validateString(body.location, 255);
+        const acquired_date = validateString(body.acquired_date, 20);
+        const status = validateString(body.status, 50);
+
+        // Sanitize metadata (JSONB field)
+        const metadata = sanitizeMetadata(body.metadata);
 
         // Insert the plant
         const result = await sql`
@@ -76,44 +78,31 @@ export default async (request, context) => {
                 status
             ) VALUES (
                 ${scientific_name},
-                ${common_name || null},
-                ${family || null},
-                ${family_common_name || null},
-                ${genus || null},
-                ${image_url || null},
-                ${author || null},
-                ${bibliography || null},
-                ${year || null},
-                ${synonyms || null},
-                ${slug || null},
-                ${trefle_id || null},
+                ${common_name},
+                ${family},
+                ${family_common_name},
+                ${genus},
+                ${image_url},
+                ${author},
+                ${bibliography},
+                ${year},
+                ${synonyms},
+                ${slug},
+                ${trefle_id},
                 ${metadata ? JSON.stringify(metadata) : '{}'},
-                ${notes || null},
-                ${nickname || null},
-                ${location || null},
-                ${acquired_date || null},
-                ${status || null}
+                ${notes},
+                ${nickname},
+                ${location},
+                ${acquired_date},
+                ${status}
             )
             RETURNING id, scientific_name, common_name, added_at
         `;
 
-        return new Response(JSON.stringify({ 
-            success: true, 
-            plant: result[0] 
-        }), {
-            status: 201,
-            headers: { 'Content-Type': 'application/json' },
-        });
+        return successResponse({ success: true, plant: result[0] }, 201);
 
     } catch (error) {
-        console.error('Error adding plant:', error);
-        return new Response(JSON.stringify({ 
-            error: 'Failed to add plant', 
-            details: error.message 
-        }), {
-            status: 500,
-            headers: { 'Content-Type': 'application/json' },
-        });
+        return errors.serverError(error);
     }
 };
 
